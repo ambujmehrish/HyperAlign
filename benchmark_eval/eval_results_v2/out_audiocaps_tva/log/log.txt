@@ -1,0 +1,130 @@
+07/27/2026 23:34:09 - INFO - __main__ -   ==================model_configs==================
+
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_model_type : gram
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_itm_ratio : 0.1
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_frozen_vision : False
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_frozen_audio : False
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_checkpointing : False
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_max_caption_len : 40
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_max_omni_caption_len : 70
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_max_subtitle_len : 70
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_contra_dim : 512
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_inherit_keys : ['vision_encoder_type', 'audio_encoder_type', 'audio_melbins', 'audio_target_length']
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_frame_embedding_type : adaptive
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_vision_resolution : 224
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_vision_encoder_type : evaclip01_giant
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_audio_encoder_type : beats
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_audio_melbins : 64
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_audio_target_length : 1024
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_beam_size : 3
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_captioner_mode : False
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_generate_nums : 1
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_ret_bidirection_evaluation : True
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_itm_rerank_num : 50
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_evaluation_type : evaluation_mm
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_stage : B
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_w_doc : 1.0
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_w_xdoc : 0.5
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_w_reg : 0.1
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_semantic_edges : True
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_knn_k : 8
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_edge_dropout : 0.3
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_hgnn_layers : 2
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_max_vision_sample_num : 8
+07/27/2026 23:34:09 - INFO - __main__ -   model_cfg_max_audio_sample_num : 1
+07/27/2026 23:34:09 - INFO - __main__ -   ==================run_configs==================
+
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_output_dir : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/eval_results_v2/out_audiocaps_tva
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_gradient_accumulation_steps : 1
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_clip_lr : 5e-07
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_optim : adamw
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_learning_rate : 0.0001
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_betas : [0.9, 0.98]
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_weight_decay : 0.01
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_grad_norm : 2.0
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_warmup_ratio : 0.1
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_resume : False
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_seed : 50
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_fp16 : True
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_bf16 : False
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_zero_shot : False
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_scheduler : warmup_linear
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_new_lr : 0
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_new_params_name : []
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_valid_freq : 10
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_save_steps : 0
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_dataset_mix_type : random
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_remove_before_ckpt : True
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_first_eval : True
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_pretrain_dir : 
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_num_train_steps : 0
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_save_best : False
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_pin_mem : True
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_vision_resolution : 224
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_use_ddp : True
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_mode : testing
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_log_steps : 100
+07/27/2026 23:34:09 - INFO - __main__ -   run_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json
+07/27/2026 23:34:09 - INFO - __main__ -   ==================data_configs==================
+
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_type : annoindexed
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_training : False
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_name : audiocaps_ret
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/audiocaps_tva_annotation.json
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/audios
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/videos
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_audio_sample_num : 1
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_vision_format : video_rawvideo
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_vision_sample_num : 8
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_task : ret%tva
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_n_workers : 8
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_batch_size : 32
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_train_vision_transforms : crop_flip
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_type : annoindexed
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_training : False
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_name : audiocaps_ret
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/audiocaps_tva_annotation.json
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/audios
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/videos
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_audio_sample_num : 1
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_vision_format : video_rawvideo
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_vision_sample_num : 8
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_task : ret%tva
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_n_workers : 8
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_batch_size : 32
+07/27/2026 23:34:09 - INFO - __main__ -   data_cfg_audiocaps_ret_val_vision_transforms : crop_flip
+07/27/2026 23:34:31 - INFO - __main__ -   Unexpected keys []
+07/27/2026 23:34:31 - INFO - __main__ -   missing_keys  []
+07/27/2026 23:34:34 - INFO - __main__ -   audiocaps_ret Using clip mean and std.
+07/27/2026 23:34:34 - INFO - __main__ -   audiocaps_ret transforms crop_flip
+07/27/2026 23:34:34 - INFO - __main__ -   [DATA-FILTER] audiocaps_ret: annotation 704 -> kept 704 (dropped 0 clips missing the ANCHOR modality only). Secondary-modality gaps are kept: zero-filled and masked per-clip (no modality filter).
+07/27/2026 23:34:34 - INFO - __main__ -   Create Dataset audiocaps_ret Success. Len 704
+07/27/2026 23:34:34 - INFO - __main__ -   evaluate on ret%tva--audiocaps_ret task
+07/27/2026 23:34:34 - INFO - __main__ -   start running ret%tva validation...
+07/27/2026 23:36:06 - INFO - __main__ -   [VOLUME] task=tva -> volume over T+VA = 3-modal
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_gramian_value========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'value': 0.9016032218933105}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_ret_area_forward========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'volume_T2D_r1': 19.9, 'volume_T2D_recall': '19.9/45.2/60.2', 'volume_T2D_ravg': 41.8}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_ret_area_backard========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'forward_r1': 18.0, 'forward_recall': '18.0/45.9/61.4', 'forward_ravg': 41.8}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_ret_itm_area========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'volume_ITM_T2D_r1': 32.7, 'volume_ITM_T2D_recall': '32.7/62.5/72.4', 'volume_ITM_T2D_ravg': 55.9, 'volume_ITM_D2T_r1': 34.4, 'volume_ITM_D2T_recall': '34.4/61.1/74.4', 'volume_ITM_D2T_ravg': 56.6}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_cosine_TV========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'forward_r1': 13.5, 'forward_recall': '13.5/36.1/50.6', 'forward_ravg': 33.4}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_cosine_VT========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'forward_r1': 10.1, 'forward_recall': '10.1/33.0/46.3', 'forward_ravg': 29.8}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_cosine_TA========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'forward_r1': 23.9, 'forward_recall': '23.9/54.7/69.0', 'forward_ravg': 49.2}
+07/27/2026 23:38:02 - INFO - __main__ -   ==== evaluation--ret%tva--audiocaps_ret_cosine_AT========
+
+07/27/2026 23:38:02 - INFO - __main__ -   {'forward_r1': 24.4, 'forward_recall': '24.4/55.1/67.0', 'forward_ravg': 48.9}

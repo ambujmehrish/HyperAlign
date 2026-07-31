@@ -1,0 +1,134 @@
+07/27/2026 23:43:46 - INFO - __main__ -   ==================model_configs==================
+
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_model_type : gram
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_itm_ratio : 0.1
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_frozen_vision : False
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_frozen_audio : False
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_checkpointing : False
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_max_caption_len : 70
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_max_omni_caption_len : 70
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_max_subtitle_len : 70
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_contra_dim : 512
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_inherit_keys : ['vision_encoder_type', 'audio_encoder_type', 'audio_melbins', 'audio_target_length']
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_frame_embedding_type : adaptive
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_vision_resolution : 224
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_vision_encoder_type : evaclip01_giant
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_audio_encoder_type : beats
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_audio_melbins : 64
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_audio_target_length : 1024
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_beam_size : 3
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_captioner_mode : False
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_generate_nums : 1
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_ret_bidirection_evaluation : True
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_itm_rerank_num : 50
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_evaluation_type : evaluation_mm
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_stage : B
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_w_doc : 1.0
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_w_xdoc : 0.5
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_w_reg : 0.1
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_semantic_edges : True
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_knn_k : 8
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_edge_dropout : 0.3
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_hgnn_layers : 2
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_max_vision_sample_num : 8
+07/27/2026 23:43:46 - INFO - __main__ -   model_cfg_max_audio_sample_num : 2
+07/27/2026 23:43:46 - INFO - __main__ -   ==================run_configs==================
+
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_output_dir : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/eval_results_v2/out_didemo_tv
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_gradient_accumulation_steps : 1
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_clip_lr : 5e-07
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_optim : adamw
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_learning_rate : 0.0001
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_betas : [0.9, 0.98]
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_weight_decay : 0.01
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_grad_norm : 2.0
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_warmup_ratio : 0.1
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_resume : False
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_seed : 50
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_fp16 : True
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_bf16 : False
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_zero_shot : False
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_scheduler : warmup_linear
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_new_lr : 0
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_new_params_name : []
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_valid_freq : 10
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_save_steps : 0
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_dataset_mix_type : random
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_remove_before_ckpt : True
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_first_eval : True
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_pretrain_dir : 
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_num_train_steps : 0
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_save_best : False
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_pin_mem : True
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_vision_resolution : 224
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_use_ddp : True
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_mode : testing
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_log_steps : 100
+07/27/2026 23:43:46 - INFO - __main__ -   run_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json
+07/27/2026 23:43:46 - INFO - __main__ -   ==================data_configs==================
+
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_type : annoindexed
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_training : False
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_name : didemo_ret
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_txt : datasets/annotations/didemo/descs_ret_test.json
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/videos_flat
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/audios
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_vision_format : video_rawvideo
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_vision_sample_num : 8
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_audio_sample_num : 2
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_task : ret%tv
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_n_workers : 8
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_train_batch_size : 32
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_type : annoindexed
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_training : False
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_name : didemo_ret
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_txt : datasets/annotations/didemo/descs_ret_test.json
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/videos_flat
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/audios
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_vision_format : video_rawvideo
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_vision_sample_num : 8
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_audio_sample_num : 2
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_task : ret%tv
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_n_workers : 8
+07/27/2026 23:43:46 - INFO - __main__ -   data_cfg_didemo_ret_val_batch_size : 32
+07/27/2026 23:44:09 - INFO - __main__ -   Unexpected keys []
+07/27/2026 23:44:09 - INFO - __main__ -   missing_keys  []
+07/27/2026 23:44:12 - INFO - __main__ -   didemo_ret Using clip mean and std.
+07/27/2026 23:44:12 - INFO - __main__ -   didemo_ret transforms none
+07/27/2026 23:44:12 - INFO - __main__ -   [DATA-FILTER] didemo_ret: annotation 1003 -> kept 1003 (dropped 0 clips missing the ANCHOR modality only). Secondary-modality gaps are kept: zero-filled and masked per-clip (no modality filter).
+07/27/2026 23:44:12 - INFO - __main__ -   Create Dataset didemo_ret Success. Len 1003
+07/27/2026 23:44:12 - INFO - __main__ -   evaluate on ret%tv--didemo_ret task
+07/27/2026 23:44:12 - INFO - __main__ -   start running ret%tv validation...
+07/27/2026 23:46:26 - INFO - __main__ -   [VOLUME] task=tv -> volume over T+V = 2-modal
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_gramian_value========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'value': 0.8808161616325378}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_ret_area_forward========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'volume_T2D_r1': 25.9, 'volume_T2D_recall': '25.9/51.2/62.0', 'volume_T2D_ravg': 46.4}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_ret_area_backard========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'forward_r1': 28.7, 'forward_recall': '28.7/53.3/63.8', 'forward_ravg': 48.6}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_ret_itm_area========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'volume_ITM_T2D_r1': 49.5, 'volume_ITM_T2D_recall': '49.5/70.8/75.8', 'volume_ITM_T2D_ravg': 65.3, 'volume_ITM_D2T_r1': 49.8, 'volume_ITM_D2T_recall': '49.8/70.9/77.1', 'volume_ITM_D2T_ravg': 65.9}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_cosine_TV========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'forward_r1': 25.9, 'forward_recall': '25.9/51.2/62.0', 'forward_ravg': 46.4}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_cosine_VT========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'forward_r1': 28.7, 'forward_recall': '28.7/53.3/63.8', 'forward_ravg': 48.6}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_cosine_TA========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'forward_r1': 4.8, 'forward_recall': '4.8/14.4/21.5', 'forward_ravg': 13.6}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_cosine_AT========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'forward_r1': 4.2, 'forward_recall': '4.2/13.4/20.3', 'forward_ravg': 12.6}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_ret_itc_tv========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'video_r1': 25.9, 'video_recall': '25.9/51.2/62.0', 'video_ravg': 46.4, 'txt_r1': 28.7, 'txt_recall': '28.7/53.3/63.8', 'txt_ravg': 48.6}
+07/27/2026 23:51:45 - INFO - __main__ -   ==== evaluation--ret%tv--didemo_ret_ret_itm_tv========
+
+07/27/2026 23:51:45 - INFO - __main__ -   {'video_r1': 49.5, 'video_recall': '49.5/70.8/75.8', 'video_ravg': 65.3, 'txt_r1': 49.8, 'txt_recall': '49.8/70.9/77.1', 'txt_ravg': 65.9}

@@ -1,0 +1,56 @@
+{
+ "run_cfg": {
+  "default": "./config/gram/default_run_cfg.json",
+  "new_params_name": [
+   "hgnn"
+  ],
+  "new_lr": 0.0005,
+  "learning_rate": 2e-05
+ },
+ "model_cfg": {
+  "default": "./config/gram/default_model_cfg.json",
+  "max_caption_len": 70,
+  "stage": "B",
+  "knn_k": 8,
+  "edge_dropout": 0.3,
+  "semantic_edges": true,
+  "w_doc": 1.0,
+  "w_reg": 0.1,
+  "hgnn_layers": 2
+ },
+ "data_cfg": {
+  "train": [
+   {
+    "type": "annoindexed",
+    "training": true,
+    "name": "didemo_ret",
+    "txt": "datasets/annotations/didemo/descs_ret_train.json",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/videos_flat",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/audios",
+    "vision_format": "video_rawvideo",
+    "vision_sample_num": 8,
+    "audio_sample_num": 2,
+    "task": "ret%tva",
+    "epoch": 40,
+    "n_workers": 8,
+    "batch_size": 64
+   }
+  ],
+  "val": [
+   {
+    "type": "annoindexed",
+    "training": false,
+    "name": "didemo_ret",
+    "txt": "datasets/annotations/didemo/descs_ret_test.json",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/videos_flat",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/audios",
+    "vision_format": "video_rawvideo",
+    "vision_sample_num": 8,
+    "audio_sample_num": 2,
+    "task": "ret%tva",
+    "n_workers": 8,
+    "batch_size": 64
+   }
+  ]
+ }
+}

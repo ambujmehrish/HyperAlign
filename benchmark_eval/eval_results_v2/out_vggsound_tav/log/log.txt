@@ -1,0 +1,111 @@
+07/28/2026 00:20:25 - INFO - __main__ -   ==================model_configs==================
+
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_model_type : gram
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_itm_ratio : 0.1
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_frozen_vision : False
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_frozen_audio : False
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_checkpointing : False
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_max_caption_len : 40
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_max_omni_caption_len : 70
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_max_subtitle_len : 70
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_contra_dim : 512
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_inherit_keys : ['vision_encoder_type', 'audio_encoder_type', 'audio_melbins', 'audio_target_length']
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_frame_embedding_type : adaptive
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_vision_resolution : 224
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_vision_encoder_type : evaclip01_giant
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_audio_encoder_type : beats
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_audio_melbins : 64
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_audio_target_length : 1024
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_beam_size : 3
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_captioner_mode : False
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_generate_nums : 1
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_ret_bidirection_evaluation : True
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_itm_rerank_num : 50
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_evaluation_type : evaluation_mm
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_stage : B
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_w_doc : 1.0
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_w_xdoc : 0.5
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_w_reg : 0.1
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_semantic_edges : True
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_knn_k : 8
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_edge_dropout : 0.3
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_hgnn_layers : 2
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_max_vision_sample_num : 8
+07/28/2026 00:20:25 - INFO - __main__ -   model_cfg_max_audio_sample_num : 1
+07/28/2026 00:20:25 - INFO - __main__ -   ==================run_configs==================
+
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_output_dir : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/eval_results_v2/out_vggsound_tav
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_gradient_accumulation_steps : 1
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_clip_lr : 5e-07
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_optim : adamw
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_learning_rate : 0.0001
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_betas : [0.9, 0.98]
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_weight_decay : 0.01
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_grad_norm : 2.0
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_warmup_ratio : 0.1
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_resume : False
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_seed : 50
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_fp16 : True
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_bf16 : False
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_zero_shot : False
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_scheduler : warmup_linear
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_new_lr : 0
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_new_params_name : []
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_valid_freq : 10
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_save_steps : 0
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_dataset_mix_type : random
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_remove_before_ckpt : True
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_first_eval : True
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_pretrain_dir : 
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_num_train_steps : 0
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_save_best : False
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_pin_mem : True
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_vision_resolution : 224
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_use_ddp : True
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_mode : testing
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_log_steps : 100
+07/28/2026 00:20:25 - INFO - __main__ -   run_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json
+07/28/2026 00:20:25 - INFO - __main__ -   ==================data_configs==================
+
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_type : annoindexed
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_training : False
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_name : vgg_ret
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/vgg5k_annotation_5000.json
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_vision_transforms : crop_flip
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_vision_format : video_rawvideo
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vggsound_5k/videos
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vggsound_5k/audios
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_vision_sample_num : 8
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_audio_sample_num : 1
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_task : ret%tva
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_n_workers : 8
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_train_batch_size : 32
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_type : annoindexed
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_training : False
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_name : vgg_ret
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/vgg5k_annotation_5000.json
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_vision_transforms : crop_flip
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_vision_format : video_rawvideo
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vggsound_5k/videos
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vggsound_5k/audios
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_vision_sample_num : 8
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_audio_sample_num : 1
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_task : ret%tva
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_n_workers : 8
+07/28/2026 00:20:25 - INFO - __main__ -   data_cfg_vgg_ret_val_batch_size : 32
+07/28/2026 00:20:47 - INFO - __main__ -   Unexpected keys []
+07/28/2026 00:20:47 - INFO - __main__ -   missing_keys  []
+07/28/2026 00:20:50 - INFO - __main__ -   vgg_ret Using clip mean and std.
+07/28/2026 00:20:50 - INFO - __main__ -   vgg_ret transforms crop_flip
+07/28/2026 00:20:56 - INFO - __main__ -   [DATA-FILTER] vgg_ret: annotation 5000 -> kept 5000 (dropped 0 clips missing the ANCHOR modality only). Secondary-modality gaps are kept: zero-filled and masked per-clip (no modality filter).
+07/28/2026 00:20:56 - INFO - __main__ -   Create Dataset vgg_ret Success. Len 5000
+07/28/2026 00:20:56 - INFO - __main__ -   evaluate on ret%tva--vgg_ret task
+07/28/2026 00:20:56 - INFO - __main__ -   start running ret%tva validation...
+07/28/2026 00:27:42 - INFO - __main__ -   ==== evaluation--ret%tva--vgg_ret_gramian_value========
+
+07/28/2026 00:27:42 - INFO - __main__ -   {'value': 0.8745068907737732}
+07/28/2026 00:27:42 - INFO - __main__ -   ==== evaluation--ret%tva--vgg_ret_ret_area_forward========
+
+07/28/2026 00:27:42 - INFO - __main__ -   {'volume_T2D_r1': 38.3, 'volume_T2D_recall': '38.3/38.3/76.3', 'volume_T2D_ravg': 57.3}

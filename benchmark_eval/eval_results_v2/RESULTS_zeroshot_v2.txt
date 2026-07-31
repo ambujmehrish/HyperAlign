@@ -1,0 +1,38 @@
+════════════════════════════════════════════════════════════════════════════════════════════
+  ZERO-SHOT SUMMARY  ·  HyperAlign 4-model (Ours, best-val ckpt)  vs  GRAM (paper)
+  Δ@1 = Ours − GRAM   (+ = beat paper)      [—] = not run / metric not found
+════════════════════════════════════════════════════════════════════════════════════════════
+
+VIDEO RETRIEVAL                    T2V (R@1/R@10)              V2T (R@1/R@10)
+bench        mode  Ours          GRAM          Δ@1   Ours          GRAM          Δ@1
+────────────────────────────────────────────────────────────────────────────────────────────
+msrvtt       tv    51.0/81.4     52.8/82.9   -1.8   47.6/79.2     49.5/81.7   -1.9
+             tva   52.1/81.5     54.2/83.9   -2.1   48.2/79.2     50.5/82.2   -2.3
+             tvas  49.0/74.1     54.8/82.9   -5.8   49.4/78.1     52.9/82.9   -3.5
+didemo       tv    49.5/75.8     54.0/80.7   -4.5   49.8/77.1     52.3/80.3   -2.5
+             tva   51.1/76.0     54.2/79.3   -3.1   49.5/76.7     52.2/78.9   -2.7
+activitynet  tv    54.0/85.0     58.9/91.2   -4.9   48.0/82.5     50.9/85.4   -2.9
+             tva   55.0/85.7     59.0/91.1   -4.0   48.8/82.3     50.4/85.8   -1.6
+vatex        tv    87.9/99.5     81.1/99.5   +6.8   84.7/97.9     79.0/98.3   +5.7
+             tva   88.6/99.5     83.9/98.6   +4.7   87.5/98.4     79.2/99.0   +8.3
+             tvas  88.6/97.4     83.5/98.8   +5.1   87.2/97.9     82.7/98.1   +4.5
+
+AUDIO (T-AV)                        Ours              GRAM        Δ@1
+────────────────────────────────────────────────────────────────────────────────────────────
+AudioCaps (R@1/R@10, T-V-A)        32.7/72.4         33.2/75.3    -0.5
+VGGSound 5K (Acc@1/Acc@10)         38.3/76.3         40.6/78.1    -2.3
+────────────────────────────────────────────────────────────────────────────────────────────
+  AudioCaps: T-V-A (videos re-downloaded from YouTube); like-for-like with GRAM T-AV (33.2/75.3).
+  VGGSound: classification, run via eval_vggsound (T-AV, Acc@1/Acc@10).
+
+· raw metric keys found per run (for mapping check):
+    msrvtt_tv              ['forward_r1', 'forward_recall', 'txt_r1', 'txt_recall', 'video_r1', 'video_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    msrvtt_tva             ['forward_r1', 'forward_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    msrvtt_tvas            ['forward_r1', 'forward_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    didemo_tv              ['forward_r1', 'forward_recall', 'txt_r1', 'txt_recall', 'video_r1', 'video_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    didemo_tva             ['forward_r1', 'forward_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    activitynet_tv         ['forward_r1', 'forward_recall', 'txt_r1', 'txt_recall', 'video_r1', 'video_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    activitynet_tva        ['forward_r1', 'forward_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    vatex_tv               ['forward_r1', 'forward_recall', 'txt_r1', 'txt_recall', 'video_r1', 'video_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    vatex_tva              ['forward_r1', 'forward_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']
+    vatex_tvas             ['forward_r1', 'forward_recall', 'volume_ITM_D2T_r1', 'volume_ITM_D2T_recall', 'volume_ITM_T2D_r1', 'volume_ITM_T2D_recall', 'volume_T2D_r1', 'volume_T2D_recall']

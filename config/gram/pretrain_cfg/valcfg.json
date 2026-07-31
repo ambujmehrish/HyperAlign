@@ -1,0 +1,33 @@
+{
+ "run_cfg": {
+  "default": "./config/gram/default_run_cfg.json",
+  "learning_rate": 0.0001,
+  "checkpoint": "/leonardo_work/IscrC_GMEG/anag0000/GRAM/code/pretrained_models/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
+  "log_steps": 1
+ },
+ "model_cfg": {
+  "default": "./config/gram/default_model_cfg.json",
+  "vision_encoder_type": "evaclip01_giant"
+ },
+ "data_cfg": {
+  "train": [
+   {
+    "type": "annoindexed",
+    "training": true,
+    "name": "vast27m",
+    "txt": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vast27m_150k/annotations_val300.json",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vast27m_150k/clips",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vast27m_150k/audios_val300",
+    "datatype": "video_rawvideo",
+    "vision_format": "video_rawvideo",
+    "vision_sample_num": 1,
+    "audio_sample_num": 1,
+    "task": "ret%tvas%tvs%tv%ta",
+    "epoch": 1,
+    "n_workers": 0,
+    "batch_size": 16
+   }
+  ],
+  "val": []
+ }
+}

@@ -1,0 +1,128 @@
+07/31/2026 03:38:23 - INFO - __main__ -   ==================model_configs==================
+
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_model_type : gram
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_itm_ratio : 0.1
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_frozen_vision : False
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_frozen_audio : False
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_checkpointing : False
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_max_caption_len : 40
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_max_omni_caption_len : 70
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_max_subtitle_len : 70
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_contra_dim : 512
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_inherit_keys : ['vision_encoder_type', 'audio_encoder_type', 'audio_melbins', 'audio_target_length']
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_frame_embedding_type : adaptive
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_vision_resolution : 224
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_vision_encoder_type : evaclip01_giant
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_audio_encoder_type : beats
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_audio_melbins : 64
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_audio_target_length : 1024
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_beam_size : 3
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_captioner_mode : False
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_generate_nums : 1
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_ret_bidirection_evaluation : True
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_itm_rerank_num : 50
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_evaluation_type : evaluation_mm
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_stage : B
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_w_doc : 1.0
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_w_xdoc : 0.5
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_w_reg : 0.1
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_semantic_edges : True
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_knn_k : 8
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_edge_dropout : 0.3
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_hgnn_layers : 2
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_max_vision_sample_num : 8
+07/31/2026 03:38:23 - INFO - __main__ -   model_cfg_max_audio_sample_num : 1
+07/31/2026 03:38:23 - INFO - __main__ -   ==================run_configs==================
+
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_ftsmoke/vatex/ckpt/best_ret%tvas--vatex_ret_ret_area_forward.pt
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_output_dir : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/ft_eval_results/out_vatex_tva
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_gradient_accumulation_steps : 1
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_clip_lr : 5e-07
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_optim : adamw
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_learning_rate : 0.0001
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_betas : [0.9, 0.98]
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_weight_decay : 0.01
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_grad_norm : 2.0
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_warmup_ratio : 0.1
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_resume : False
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_seed : 50
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_fp16 : True
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_bf16 : False
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_zero_shot : False
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_scheduler : warmup_linear
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_new_lr : 0
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_new_params_name : []
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_valid_freq : 10
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_save_steps : 0
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_dataset_mix_type : random
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_remove_before_ckpt : True
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_first_eval : True
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_pretrain_dir : 
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_num_train_steps : 0
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_save_best : False
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_pin_mem : True
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_vision_resolution : 224
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_use_ddp : True
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_mode : testing
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_log_steps : 100
+07/31/2026 03:38:23 - INFO - __main__ -   run_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json
+07/31/2026 03:38:23 - INFO - __main__ -   ==================data_configs==================
+
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_type : annoindexed
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_training : False
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_name : vatex_ret
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_vatex_tva_train.json
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/VATEX/videos_raw
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/VATEX/audios
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_vision_format : video_rawvideo
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_vision_sample_num : 8
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_audio_sample_num : 1
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_task : ret%tva
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_n_workers : 8
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_train_batch_size : 32
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_type : annoindexed
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_training : False
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_name : vatex_ret
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_vatex_tva_val.json
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/VATEX/videos_raw
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/VATEX/audios
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_vision_format : video_rawvideo
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_vision_sample_num : 8
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_audio_sample_num : 1
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_task : ret%tva
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_n_workers : 8
+07/31/2026 03:38:23 - INFO - __main__ -   data_cfg_vatex_ret_val_batch_size : 32
+07/31/2026 03:39:04 - INFO - __main__ -   Unexpected keys []
+07/31/2026 03:39:04 - INFO - __main__ -   missing_keys  []
+07/31/2026 03:39:07 - INFO - __main__ -   vatex_ret Using clip mean and std.
+07/31/2026 03:39:07 - INFO - __main__ -   vatex_ret transforms none
+07/31/2026 03:39:07 - INFO - __main__ -   [DATA-FILTER] vatex_ret: annotation 80 -> kept 80 (dropped 0 clips missing the ANCHOR modality only). Secondary-modality gaps are kept: zero-filled and masked per-clip (no modality filter).
+07/31/2026 03:39:07 - INFO - __main__ -   Create Dataset vatex_ret Success. Len 80
+07/31/2026 03:39:07 - INFO - __main__ -   evaluate on ret%tva--vatex_ret task
+07/31/2026 03:39:07 - INFO - __main__ -   start running ret%tva validation...
+07/31/2026 03:39:59 - INFO - __main__ -   [VOLUME] task=tva -> volume over T+VA = 3-modal
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_gramian_value========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'value': 0.8623060584068298}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_ret_area_forward========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'volume_T2D_r1': 86.2, 'volume_T2D_recall': '86.2/100.0/100.0', 'volume_T2D_ravg': 95.4}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_ret_area_backard========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'forward_r1': 87.5, 'forward_recall': '87.5/97.5/100.0', 'forward_ravg': 95.0}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_ret_itm_area========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'volume_ITM_T2D_r1': 96.2, 'volume_ITM_T2D_recall': '96.2/100.0/100.0', 'volume_ITM_T2D_ravg': 98.8, 'volume_ITM_D2T_r1': 92.5, 'volume_ITM_D2T_recall': '92.5/98.8/100.0', 'volume_ITM_D2T_ravg': 97.1}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_cosine_TV========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'forward_r1': 85.0, 'forward_recall': '85.0/98.8/100.0', 'forward_ravg': 94.6}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_cosine_VT========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'forward_r1': 82.5, 'forward_recall': '82.5/97.5/98.8', 'forward_ravg': 92.9}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_cosine_TA========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'forward_r1': 40.0, 'forward_recall': '40.0/73.8/90.0', 'forward_ravg': 67.9}
+07/31/2026 03:40:11 - INFO - __main__ -   ==== evaluation--ret%tva--vatex_ret_cosine_AT========
+
+07/31/2026 03:40:11 - INFO - __main__ -   {'forward_r1': 32.5, 'forward_recall': '32.5/72.5/81.2', 'forward_ravg': 62.1}

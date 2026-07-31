@@ -1,0 +1,56 @@
+{
+ "run_cfg": {
+  "default": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json",
+  "mode": "testing",
+  "checkpoint": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_smoke_ha/ckpt/model_step_22.pt"
+ },
+ "model_cfg": {
+  "default": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json",
+  "vision_encoder_type": "evaclip01_giant",
+  "stage": "B",
+  "w_doc": 1.0,
+  "w_xdoc": 0.5,
+  "w_reg": 0.1,
+  "semantic_edges": true,
+  "knn_k": 8,
+  "edge_dropout": 0.3,
+  "hgnn_layers": 2,
+  "ret_bidirection_evaluation": true
+ },
+ "data_cfg": {
+  "train": [
+   {
+    "type": "annoindexed",
+    "training": false,
+    "name": "audiocaps_ret",
+    "txt": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_audiocaps_tva_train.json",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/audios",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/videos",
+    "audio_sample_num": 1,
+    "vision_format": "video_rawvideo",
+    "vision_sample_num": 8,
+    "task": "ret%tva",
+    "n_workers": 8,
+    "batch_size": 32,
+    "vision_transforms": "crop_flip"
+   }
+  ],
+  "val": [
+   {
+    "type": "annoindexed",
+    "training": false,
+    "name": "audiocaps_ret",
+    "txt": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_audiocaps_tva_val.json",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/audios",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/AudioCaps/videos",
+    "audio_sample_num": 1,
+    "vision_format": "video_rawvideo",
+    "vision_sample_num": 8,
+    "task": "ret%tva",
+    "n_workers": 8,
+    "batch_size": 32,
+    "vision_transforms": "crop_flip"
+   }
+  ]
+ }
+}
