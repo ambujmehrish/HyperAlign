@@ -51,10 +51,13 @@ elif conda activate "$_ha_env" 2>/dev/null; then
   _ha_activated=1
 else
   # name not registered — look for an env prefix with that name in the WORK area
-  for _p in "/leonardo_work/AIFAC_S07_041/envs/$_ha_env" \
+  for _p in "$HA_WORK/envs/$_ha_env" \
+            "/leonardo_work/AIFAC_S07_041/envs/$_ha_env" \
             "/leonardo_work/AIFAC_S07_041/conda_envs/$_ha_env" \
             "/leonardo_work/AIFAC_S07_041/$USER/envs/$_ha_env" \
-            "$HA_WORK/envs/$_ha_env" \
+            "/leonardo_scratch/fast/AIFAC_S07_041/envs/$_ha_env" \
+            "/leonardo_scratch/fast/AIFAC_S07_041/conda/envs/$_ha_env" \
+            "/leonardo_scratch/large/userexternal/$USER/envs/$_ha_env" \
             "$HA_WORK/conda_envs/$_ha_env"; do
     if [ -d "$_p" ]; then
       conda activate "$_p" && _ha_activated=1
