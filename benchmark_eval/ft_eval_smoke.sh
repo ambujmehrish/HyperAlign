@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A IscrC_CASPER-A_0
+#SBATCH -A AIFAC_S07_041
 #SBATCH -p boost_usr_prod
 #SBATCH --qos=boost_qos_dbg
 #SBATCH --time=00:28:00
@@ -9,20 +9,18 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=240G
 #SBATCH --job-name=ha_fteval
-#SBATCH -o /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_logs/fteval_%j.out
-#SBATCH -e /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_logs/fteval_%j.out
+#SBATCH -o /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_logs/fteval_%j.out
+#SBATCH -e /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_logs/fteval_%j.out
 #
 # 10-mode FT-EVAL smoke (HyperAlign) — each FINETUNED checkpoint eval'd on its OWN benchmark.
 # Configs in configs_ft/ already have the finetuned checkpoint baked + smoke-truncated val.
 # GRAM-faithful eval (no hypergraph), per-task volume.  CHUNKABLE by bench name.
 set -uo pipefail
-H=/leonardo_work/IscrC_GMEG/anag0000/HyperAlign
+H=/leonardo/home/userexternal/amehrish/HyperAlign
+W=/leonardo_work/AIFAC_S07_041/HyperAlign
 EVAL=$H/benchmark_eval
 cd "$H"; mkdir -p "$EVAL/smoke_logs" "$EVAL/ft_eval_results"
-source /leonardo_work/IscrC_GMEG/anag0000/miniconda3/etc/profile.d/conda.sh
-conda activate Multimodal_hypergraph
-export WANDB_MODE=offline
-export GRAM_MP_CTX=forkserver
+source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
 BENCHES="${*:-msrvtt vatex didemo activitynet}"
 echo "==== HA FT-EVAL SMOKE START $(date +%T)  benches='$BENCHES' ===="
 FAIL=0

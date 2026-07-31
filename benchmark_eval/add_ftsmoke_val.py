@@ -1,6 +1,6 @@
 import json, os, copy
 
-H = "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign"
+H = "/leonardo/home/userexternal/amehrish/HyperAlign"
 FT = os.path.join(H, "config/gram/finetune_cfg")
 ANN = os.path.join(H, "benchmark_eval/smoke_annos")
 os.makedirs(ANN, exist_ok=True)

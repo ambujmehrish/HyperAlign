@@ -22,7 +22,7 @@
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_ret_bidirection_evaluation : True
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_itm_rerank_num : 50
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_evaluation_type : evaluation_mm
-07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json
+07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_default : /leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_model_cfg.json
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_stage : B
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_w_doc : 1.0
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_w_xdoc : 0.5
@@ -35,8 +35,8 @@
 07/31/2026 03:32:20 - INFO - __main__ -   model_cfg_max_audio_sample_num : 2
 07/31/2026 03:32:20 - INFO - __main__ -   ==================run_configs==================
 
-07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_ftsmoke/activitynet/ckpt/best_ret%tva--activitynet_ret_ret_area_forward.pt
-07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_output_dir : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/ft_eval_results/out_activitynet_tva
+07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/AIFAC_S07_041/HyperAlign/workdir_ftsmoke/activitynet/ckpt/best_ret%tva--activitynet_ret_ret_area_forward.pt
+07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_output_dir : /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/ft_eval_results/out_activitynet_tva
 07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_gradient_accumulation_steps : 1
 07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_clip_lr : 5e-07
 07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_optim : adamw
@@ -66,13 +66,13 @@
 07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_use_ddp : True
 07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_mode : testing
 07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_log_steps : 100
-07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json
+07/31/2026 03:32:20 - INFO - __main__ -   run_cfg_default : /leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_run_cfg.json
 07/31/2026 03:32:20 - INFO - __main__ -   ==================data_configs==================
 
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_type : annoindexed
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_training : False
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_name : activitynet_ret
-07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_activitynet_tva_train.json
+07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_txt : /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_annos/zs_activitynet_tva_train.json
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/ActivityNet/videos/Activity_Videos
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/ActivityNet/audios
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_train_vision_format : video_rawvideo
@@ -84,7 +84,7 @@
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_type : annoindexed
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_training : False
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_name : activitynet_ret
-07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_txt : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_activitynet_tva_val.json
+07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_txt : /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_annos/zs_activitynet_tva_val.json
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_vision : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/ActivityNet/videos/Activity_Videos
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_audio : /leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/ActivityNet/audios
 07/31/2026 03:32:20 - INFO - __main__ -   data_cfg_activitynet_ret_val_vision_format : video_rawvideo

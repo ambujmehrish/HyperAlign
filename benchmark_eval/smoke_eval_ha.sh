@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A IscrC_CASPER-A_0
+#SBATCH -A AIFAC_S07_041
 #SBATCH -p boost_usr_prod
 #SBATCH --qos=boost_qos_dbg
 #SBATCH --time=00:28:00
@@ -9,22 +9,20 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=240G
 #SBATCH --job-name=ha_zseval
-#SBATCH -o /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_logs/zseval_%j.out
-#SBATCH -e /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_logs/zseval_%j.out
+#SBATCH -o /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_logs/zseval_%j.out
+#SBATCH -e /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_logs/zseval_%j.out
 # HyperAlign zero-shot EVAL smoke: run the benchmark_eval pipeline (make_configs -> run_eval) on the
 # 24-step smoke checkpoint, ~80 clips/mode, debug QOS. Verifies the eval pipeline runs error-free.
 # Args = benchmark names to run this chunk (e.g. "msrvtt vatex"). No args = all 12.
 set -uo pipefail
-E2E=/leonardo_work/IscrC_GMEG/anag0000/HyperAlign
+E2E=/leonardo/home/userexternal/amehrish/HyperAlign
+W=/leonardo_work/AIFAC_S07_041/HyperAlign
 EVAL=$E2E/benchmark_eval
 RES=$EVAL/smoke_results
 mkdir -p "$RES" "$EVAL/smoke_logs" "$EVAL/smoke_annos"
-source /leonardo_work/IscrC_GMEG/anag0000/miniconda3/etc/profile.d/conda.sh
-conda activate Multimodal_hypergraph
-export WANDB_MODE=offline
-export GRAM_MP_CTX=forkserver
+source "$E2E/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
 # point make_configs at the smoke checkpoint (24-step trained model)
-export GRAM_CKPT=$E2E/workdir_smoke_ha/ckpt/model_step_22.pt
+export GRAM_CKPT=$W/workdir_smoke_ha/ckpt/model_step_22.pt
 
 echo "==== HA zero-shot EVAL smoke $(date +%T)  ckpt=$(basename $GRAM_CKPT)  benches='${*:-ALL}' ===="
 # 1) generate the 12 zs_*.json configs against the smoke checkpoint
@@ -32,7 +30,7 @@ python3 "$EVAL/make_configs.py"
 # 2) truncate each config's val (and train) annotation to ~80 clips for a fast smoke
 python3 - <<'PYEOF'
 import json, glob, os
-N=80; E2E="/leonardo_work/IscrC_GMEG/anag0000/HyperAlign"
+N=80; E2E="/leonardo/home/userexternal/amehrish/HyperAlign"
 CFG=f"{E2E}/benchmark_eval/configs"; SM=f"{E2E}/benchmark_eval/smoke_annos"
 for cf in sorted(glob.glob(f"{CFG}/zs_*.json")):
     c=json.load(open(cf)); ok=True

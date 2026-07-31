@@ -22,7 +22,7 @@
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_ret_bidirection_evaluation : True
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_itm_rerank_num : 50
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_evaluation_type : evaluation_mm
-07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json
+07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_default : /leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_model_cfg.json
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_stage : B
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_w_doc : 1.0
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_w_xdoc : 0.5
@@ -35,8 +35,8 @@
 07/27/2026 23:00:51 - INFO - __main__ -   model_cfg_max_audio_sample_num : 2
 07/27/2026 23:00:51 - INFO - __main__ -   ==================run_configs==================
 
-07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt
-07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_output_dir : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/eval_results_v2/out_activitynet_tv
+07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_checkpoint : /leonardo_work/AIFAC_S07_041/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt
+07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_output_dir : /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/eval_results_v2/out_activitynet_tv
 07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_gradient_accumulation_steps : 1
 07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_clip_lr : 5e-07
 07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_optim : adamw
@@ -66,7 +66,7 @@
 07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_use_ddp : True
 07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_mode : testing
 07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_log_steps : 100
-07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_default : /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json
+07/27/2026 23:00:51 - INFO - __main__ -   run_cfg_default : /leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_run_cfg.json
 07/27/2026 23:00:51 - INFO - __main__ -   ==================data_configs==================
 
 07/27/2026 23:00:51 - INFO - __main__ -   data_cfg_activitynet_ret_train_type : annoindexed

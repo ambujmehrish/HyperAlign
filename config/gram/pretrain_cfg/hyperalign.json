@@ -4,7 +4,7 @@
   "learning_rate": 2e-05,
   "first_eval": false,
   "save_steps": 150,
-  "checkpoint": "/leonardo_work/IscrC_GMEG/anag0000/GRAM/code/pretrained_models/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
+  "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
   "save_best": true,
   "valid_freq": 10,
   "new_params_name": [

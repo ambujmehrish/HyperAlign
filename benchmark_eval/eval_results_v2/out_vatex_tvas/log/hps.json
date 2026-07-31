@@ -1,7 +1,7 @@
 {
     "run_cfg": {
-        "checkpoint": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt",
-        "output_dir": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/eval_results_v2/out_vatex_tvas",
+        "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt",
+        "output_dir": "/leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/eval_results_v2/out_vatex_tvas",
         "gradient_accumulation_steps": 1,
         "clip_lr": 5e-07,
         "optim": "adamw",
@@ -34,7 +34,7 @@
         "use_ddp": true,
         "mode": "testing",
         "log_steps": 100,
-        "default": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json"
+        "default": "/leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_run_cfg.json"
     },
     "model_cfg": {
         "model_type": "gram",
@@ -64,7 +64,7 @@
         "ret_bidirection_evaluation": true,
         "itm_rerank_num": 50,
         "evaluation_type": "evaluation_mm",
-        "default": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json",
+        "default": "/leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_model_cfg.json",
         "stage": "B",
         "w_doc": 1.0,
         "w_xdoc": 0.5,

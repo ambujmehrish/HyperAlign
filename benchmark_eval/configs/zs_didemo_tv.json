@@ -1,11 +1,11 @@
 {
  "run_cfg": {
-  "default": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_run_cfg.json",
+  "default": "/leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_run_cfg.json",
   "mode": "testing",
-  "checkpoint": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/workdir_smoke_ha/ckpt/model_step_22.pt"
+  "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/workdir_smoke_ha/ckpt/model_step_22.pt"
  },
  "model_cfg": {
-  "default": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/config/gram/default_model_cfg.json",
+  "default": "/leonardo/home/userexternal/amehrish/HyperAlign/config/gram/default_model_cfg.json",
   "vision_encoder_type": "evaclip01_giant",
   "stage": "B",
   "w_doc": 1.0,
@@ -24,7 +24,7 @@
     "type": "annoindexed",
     "training": false,
     "name": "didemo_ret",
-    "txt": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_didemo_tv_train.json",
+    "txt": "/leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_annos/zs_didemo_tv_train.json",
     "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/videos_flat",
     "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/audios",
     "vision_format": "video_rawvideo",
@@ -40,7 +40,7 @@
     "type": "annoindexed",
     "training": false,
     "name": "didemo_ret",
-    "txt": "/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/smoke_annos/zs_didemo_tv_val.json",
+    "txt": "/leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/smoke_annos/zs_didemo_tv_val.json",
     "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/videos_flat",
     "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/DiDeMo/audios",
     "vision_format": "video_rawvideo",

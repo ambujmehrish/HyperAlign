@@ -149,6 +149,6 @@ build("Finetuning","Fine-tuning  ·  10 modes, own checkpoint  (R@1 / R@10)   [p
  ["Benchmark","Mode","R@1","R@10","R@1","R@10","R@1","R@10","R@1","R@10","Δ T2V"],
  ft, ours_cols={3,4,7,8}, delta_cols={11}, merge_first=True)
 
-out="/leonardo_work/IscrC_GMEG/anag0000/HyperAlign/HyperAlign_results.xlsx"
+out="/leonardo/home/userexternal/amehrish/HyperAlign/HyperAlign_results.xlsx"
 wb.save(out)
 print(f"saved: {out}\nsheets: {wb.sheetnames}")

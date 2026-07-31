@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A IscrC_CASPER-A_0
+#SBATCH -A AIFAC_S07_041
 #SBATCH -p boost_usr_prod
 #SBATCH --qos=normal
 #SBATCH --time=04:00:00
@@ -9,8 +9,8 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=240G
 #SBATCH --job-name=zs
-#SBATCH -o /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/logs/zs_%j.out
-#SBATCH -e /leonardo_work/IscrC_GMEG/anag0000/HyperAlign/benchmark_eval/logs/zs_%j.out
+#SBATCH -o /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/logs/zs_%j.out
+#SBATCH -e /leonardo/home/userexternal/amehrish/HyperAlign/benchmark_eval/logs/zs_%j.out
 #
 # Zero-shot retrieval evaluation with the hypergraph model (gate 1.0, signed refinement, graph ON).
 # Regenerates the 12 zs_*.json configs (checkpoint baked into workdir_v2full), loops run_eval.py,
@@ -19,16 +19,13 @@
 # Usage:  sbatch eval_zeroshot.sh            # all 12 benchmark/mode
 #         sbatch eval_zeroshot.sh didemo     # one benchmark first
 set -uo pipefail
-E2E=/leonardo_work/IscrC_GMEG/anag0000/HyperAlign
+E2E=/leonardo/home/userexternal/amehrish/HyperAlign
 EVAL=$E2E/benchmark_eval
 CFG=$EVAL/configs
 RES=$EVAL/eval_results
 mkdir -p "$RES" "$EVAL/logs"
 
-source /leonardo_work/IscrC_GMEG/anag0000/miniconda3/etc/profile.d/conda.sh
-conda activate Multimodal_hypergraph
-export WANDB_MODE=offline
-export GRAM_MP_CTX=forkserver
+source "$E2E/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
 
 # regenerate the 12 zero-shot configs against the best-val checkpoint (workdir_v2full)
 python3 "$EVAL/make_configs.py"

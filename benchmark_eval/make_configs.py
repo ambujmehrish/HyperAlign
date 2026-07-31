@@ -22,7 +22,9 @@ from pick_ckpt import pick_ckpt                      # prefer best-val, fallback
 OUT  = f'{HERE}/configs'
 os.makedirs(OUT, exist_ok=True)
 # our pretrained 4-model (best-val checkpoint, GRAM-style save_best)
-CKPT = os.environ.get('GRAM_CKPT') or pick_ckpt(f'{E2E}/workdir_v2full/4model/ckpt', f'{E2E}/workdir_v2full/4model/ckpt/PRETRAIN_FIRST.pt')
+# workdir_v2full lives in the project WORK area (home quota too small for checkpoints)
+WORKD = os.environ.get('HA_WORK', '/leonardo_work/AIFAC_S07_041/HyperAlign')
+CKPT = os.environ.get('GRAM_CKPT') or pick_ckpt(f'{WORKD}/workdir_v2full/4model/ckpt', f'{WORKD}/workdir_v2full/4model/ckpt/PRETRAIN_FIRST.pt')
 print(f'  zero-shot init: {os.path.basename(CKPT)}'
       + ('' if os.path.exists(CKPT) else '  ⚠️ run pretrain first!'))
 
