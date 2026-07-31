@@ -17,7 +17,7 @@
 set -uo pipefail
 H=/leonardo/home/userexternal/amehrish/HyperAlign
 W=/leonardo_work/AIFAC_S07_041/HyperAlign
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 cd "$H"; mkdir -p slurm_scripts/logs "$W/workdir/finetune_msrvtt_depth"
 # init = the finetuned msrvtt checkpoint (not the pretrained one) — depth stacks on it
 INIT=$(ls -t "$W"/workdir/finetune_msrvtt/ckpt/best_*.pt 2>/dev/null | head -1)

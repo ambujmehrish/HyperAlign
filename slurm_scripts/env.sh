@@ -1,5 +1,8 @@
 #!/bin/bash
-# Shared environment for HyperAlign jobs (sourced by every slurm script).
+# Shared environment for HyperAlign jobs. This file is SOURCED (by slurm scripts
+# and interactively), so it must never call `exit` — that would close a login
+# shell. On error it prints the reason and returns 1; slurm scripts source it
+# with `|| exit 1`.
 #
 # Storage layout (home quota is 50 GB, so everything big lives elsewhere):
 #   HA_CODE : the code checkout (this repo)               — home
@@ -28,37 +31,43 @@ for _c in "${_ha_conda_candidates[@]}"; do
   if [ -n "$_c" ] && [ -f "$_c" ]; then _ha_found="$_c"; break; fi
 done
 if [ -n "$_ha_found" ]; then
+  echo "conda install: $_ha_found"
   source "$_ha_found"
-elif ! command -v conda >/dev/null 2>&1; then
+elif command -v conda >/dev/null 2>&1; then
+  echo "conda install: $(command -v conda) (already on PATH)"
+else
   echo "ERROR: conda not found. Set CONDA_SH=/path/to/miniconda3/etc/profile.d/conda.sh" >&2
-  exit 1
+  return 1 2>/dev/null || exit 1   # return when sourced; exit only if executed
 fi
 
 # ---- conda environment ---------------------------------------------------
 # HA_CONDA_ENV may be an env NAME (registered with this conda install) or a
 # full PATH to the env prefix (e.g. /leonardo_work/AIFAC_S07_041/envs/hyperalign).
 _ha_env="${HA_CONDA_ENV:-Multimodal_hypergraph}"
+_ha_activated=""
 if [ -d "$_ha_env" ]; then
-  conda activate "$_ha_env"
-elif ! conda activate "$_ha_env" 2>/dev/null; then
+  conda activate "$_ha_env" && _ha_activated=1
+elif conda activate "$_ha_env" 2>/dev/null; then
+  _ha_activated=1
+else
   # name not registered — look for an env prefix with that name in the WORK area
-  _ha_env_found=""
   for _p in "/leonardo_work/AIFAC_S07_041/envs/$_ha_env" \
             "/leonardo_work/AIFAC_S07_041/conda_envs/$_ha_env" \
             "/leonardo_work/AIFAC_S07_041/$USER/envs/$_ha_env" \
             "$HA_WORK/envs/$_ha_env" \
             "$HA_WORK/conda_envs/$_ha_env"; do
-    if [ -d "$_p" ]; then _ha_env_found="$_p"; break; fi
+    if [ -d "$_p" ]; then
+      conda activate "$_p" && _ha_activated=1
+      break
+    fi
   done
-  if [ -n "$_ha_env_found" ]; then
-    conda activate "$_ha_env_found"
-  else
-    echo "ERROR: could not activate conda env '$_ha_env'." >&2
-    echo "  Set HA_CONDA_ENV to your env name or its full path, e.g." >&2
-    echo "    export HA_CONDA_ENV=/leonardo_work/AIFAC_S07_041/envs/<name>" >&2
-    echo "  (find it with: conda env list)" >&2
-    exit 1
-  fi
+fi
+if [ -z "$_ha_activated" ]; then
+  echo "ERROR: could not activate conda env '$_ha_env'." >&2
+  echo "  Set HA_CONDA_ENV to your env name or its full path, e.g." >&2
+  echo "    export HA_CONDA_ENV=/leonardo_work/AIFAC_S07_041/envs/<name>" >&2
+  echo "  (find it with: conda env list)" >&2
+  return 1 2>/dev/null || exit 1   # return when sourced; exit only if executed
 fi
 echo "conda env: $CONDA_DEFAULT_ENV ($(command -v python3))"
 

@@ -15,7 +15,7 @@
 set -uo pipefail
 H=/leonardo/home/userexternal/amehrish/HyperAlign
 W=/leonardo_work/AIFAC_S07_041/HyperAlign
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 cd "$H"; mkdir -p slurm_scripts/logs "$W/workdir/finetune_activitynet"
 INIT="$W/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt"
 RESUME=""; ls "$W"/workdir/finetune_activitynet/ckpt/optimizer_step_*.pt >/dev/null 2>&1 && RESUME="--resume true"

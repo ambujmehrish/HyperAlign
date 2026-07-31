@@ -18,7 +18,7 @@
 echo "START=$(date +%T) [HyperAlign pretrain, GRAM recipe + hypergraph -> ./workdir_pretrain/4model]"
 H=/leonardo/home/userexternal/amehrish/HyperAlign
 W=/leonardo_work/AIFAC_S07_041/HyperAlign
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 cd "$H"
 # auto-resume: continue from the latest optimizer checkpoint after a crash
 RESUME=""

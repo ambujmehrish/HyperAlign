@@ -16,7 +16,7 @@
 echo "START=$(date +%T) [HyperAlign training smoke, 24 steps + validate]"
 H=/leonardo/home/userexternal/amehrish/HyperAlign
 W=/leonardo_work/AIFAC_S07_041/HyperAlign
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 cd "$H"
 srun python3 -m torch.distributed.launch --nnodes 1 --node_rank 0 --nproc_per_node 4 --master_port 9877 \
   ./run.py --config ./config/gram/pretrain_cfg/hyperalign_smoke.json \

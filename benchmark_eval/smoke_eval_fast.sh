@@ -18,7 +18,7 @@ CFG=${1:?need config basename}
 E2E=/leonardo/home/userexternal/amehrish/HyperAlign
 EVAL=$E2E/benchmark_eval
 mkdir -p "$EVAL/smoke_logs" "$EVAL/smoke_results"
-source "$E2E/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$E2E/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 cd "$E2E"
 echo "==== HA zs-eval FAST smoke $(date +%T)  config=$CFG (one load, all val entries) ===="
 srun python3 -m torch.distributed.launch --nnodes 1 --node_rank 0 --nproc_per_node 4 --master_port 9855 \

@@ -20,7 +20,7 @@ H=/leonardo/home/userexternal/amehrish/HyperAlign
 W=/leonardo_work/AIFAC_S07_041/HyperAlign
 EVAL=$H/benchmark_eval
 cd "$H"; mkdir -p "$EVAL/smoke_logs" "$EVAL/ft_eval_results"
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 BENCHES="${*:-msrvtt vatex didemo activitynet}"
 echo "==== HA FT-EVAL SMOKE START $(date +%T)  benches='$BENCHES' ===="
 FAIL=0

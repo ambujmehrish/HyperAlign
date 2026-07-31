@@ -25,7 +25,7 @@ CFG=$EVAL/configs
 RES=$EVAL/eval_results
 mkdir -p "$RES" "$EVAL/logs"
 
-source "$E2E/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$E2E/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 
 # regenerate the 12 zero-shot configs against the best-val checkpoint (workdir_v2full)
 python3 "$EVAL/make_configs.py"

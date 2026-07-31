@@ -20,7 +20,7 @@ W=/leonardo_work/AIFAC_S07_041/HyperAlign
 EVAL=$E2E/benchmark_eval
 RES=$EVAL/smoke_results
 mkdir -p "$RES" "$EVAL/smoke_logs" "$EVAL/smoke_annos"
-source "$E2E/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$E2E/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 # point make_configs at the smoke checkpoint (24-step trained model)
 export GRAM_CKPT=$W/workdir_smoke_ha/ckpt/model_step_22.pt
 

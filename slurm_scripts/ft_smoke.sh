@@ -17,7 +17,7 @@ set -uo pipefail
 H=/leonardo/home/userexternal/amehrish/HyperAlign
 W=/leonardo_work/AIFAC_S07_041/HyperAlign
 INIT="$W/workdir_v2full/4model/ckpt/best_ret%tvas--msrvtt_ret_ret_area_forward.pt"
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 cd "$H"; mkdir -p slurm_scripts/logs "$W/workdir_ftsmoke"
 FAIL=0
 for ds in "$@"; do

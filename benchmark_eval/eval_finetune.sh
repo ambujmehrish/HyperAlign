@@ -31,7 +31,7 @@ FT_CKPT=$(ls -t "$FTDIR"/best_*.pt 2>/dev/null | head -1)
 [ -z "$FT_CKPT" ] && { echo "ERROR: no finetuned checkpoint in $FTDIR — run finetune.sh $BENCH first"; exit 1; }
 echo "FT eval ${BENCH} using checkpoint: $FT_CKPT"
 
-source "$H/slurm_scripts/env.sh"   # conda + WANDB/GRAM env
+source "$H/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
 export GRAM_CKPT="$FT_CKPT"             # make_configs.py bakes THIS checkpoint into the eval configs
 case "$BENCH" in *depth*) export DEPTH_EVAL=1;; esac   # depth bench -> make_configs adds the 5-modal msrvtt_depth (tvasd) config
 python3 "$EVAL/make_configs.py"          # regenerate eval configs against the finetuned checkpoint
