@@ -1,0 +1,21 @@
+# HyperAlign python dependencies (torch installed separately with CUDA wheels — see setup_env.sh)
+numpy<2
+transformers==4.39.3
+timm==0.9.16
+easydict
+einops
+ftfy
+regex
+tqdm
+wandb
+openpyxl
+opencv-python-headless
+ffmpeg-python
+audioread
+librosa
+soundfile
+decord
+pillow
+packaging
+setuptools
+ipdb
