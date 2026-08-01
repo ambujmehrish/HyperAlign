@@ -2,7 +2,7 @@
 #SBATCH -A AIFAC_S07_041
 #SBATCH -p boost_usr_prod
 #SBATCH --qos=normal
-#SBATCH --time=06:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4
