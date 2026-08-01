@@ -75,4 +75,9 @@ fi
 echo "conda env: $CONDA_DEFAULT_ENV ($(command -v python3))"
 
 export WANDB_MODE=offline
+# keep wandb offline-run data + caches off the home quota
+export WANDB_DIR="$HA_WORK/wandb"
+export WANDB_CACHE_DIR="$HA_WORK/.cache/wandb"
+export WANDB_DATA_DIR="$HA_WORK/.cache/wandb-data"
+mkdir -p "$WANDB_DIR" "$WANDB_CACHE_DIR" "$WANDB_DATA_DIR"
 export GRAM_MP_CTX=forkserver
