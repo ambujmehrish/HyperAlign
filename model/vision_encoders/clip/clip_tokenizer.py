@@ -3,7 +3,7 @@ import html
 import os
 from functools import lru_cache
 from typing import Any, Union, List
-from pkg_resources import packaging
+import packaging.version
 import ftfy
 import regex as re
 import torch
