@@ -1,0 +1,49 @@
+{
+  "_source": {
+    "paper": "GRAM: Gramian Multimodal Representation Learning and Alignment (ICLR 2025)",
+    "arxiv": "https://arxiv.org/abs/2412.11959",
+    "html_version_used": "https://arxiv.org/html/2412.11959v2",
+    "code": "https://github.com/ispamm/GRAM",
+    "model_row": "GRAM (the paper's own model, VAST backbone + Gramian alignment, pretrained on VAST27M-150k)",
+    "metrics": "R@1 and R@10, in percent. The paper does NOT report R@5, so only @1/@10 are listed here.",
+    "tables": {
+      "zeroshot": "Table 1 (main) / Tables 8-9 (appendix, T2V and V2T split)",
+      "finetuned": "Table 2",
+      "audio": "Table 3"
+    },
+    "verification": "R@1 values transcribed and cross-checked against the arXiv HTML full text. R@10 values are carried over from the numbers already embedded in benchmark_eval/eval_summary.py and make_results_xlsx.py, which agree with each other; they were not individually re-read from the paper HTML.",
+    "modality_codes": "tv = text+video, tva = text+video+audio, tvas = text+video+audio+subtitle"
+  },
+
+  "zeroshot": {
+    "msrvtt":      {"tv":   {"T2V": [52.8, 82.9], "V2T": [49.5, 81.7]},
+                    "tva":  {"T2V": [54.2, 83.9], "V2T": [50.5, 82.2]},
+                    "tvas": {"T2V": [54.8, 82.9], "V2T": [52.9, 82.9]}},
+    "didemo":      {"tv":   {"T2V": [54.0, 80.7], "V2T": [52.3, 80.3]},
+                    "tva":  {"T2V": [54.2, 79.3], "V2T": [52.2, 78.9]}},
+    "activitynet": {"tv":   {"T2V": [58.9, 91.2], "V2T": [50.9, 85.4]},
+                    "tva":  {"T2V": [59.0, 91.1], "V2T": [50.4, 85.8]}},
+    "vatex":       {"tv":   {"T2V": [81.1, 99.5], "V2T": [79.0, 98.3]},
+                    "tva":  {"T2V": [83.9, 98.6], "V2T": [79.2, 99.0]},
+                    "tvas": {"T2V": [83.5, 98.8], "V2T": [82.7, 98.1]}}
+  },
+
+  "finetuned": {
+    "msrvtt":      {"tv":   {"T2V": [55.7, 86.4], "V2T": [56.4, 87.6]},
+                    "tva":  {"T2V": [58.4, 87.0], "V2T": [59.0, 89.1]},
+                    "tvas": {"T2V": [64.0, 89.3], "V2T": [64.8, 91.5]}},
+    "didemo":      {"tv":   {"T2V": [66.4, 89.9], "V2T": [63.2, 91.6]},
+                    "tva":  {"T2V": [67.3, 90.1], "V2T": [63.5, 91.4]}},
+    "activitynet": {"tv":   {"T2V": [66.5, 96.0], "V2T": [64.6, 95.1]},
+                    "tva":  {"T2V": [69.9, 96.1], "V2T": [66.9, 95.4]}},
+    "vatex":       {"tv":   {"T2V": [84.4, 99.8], "V2T": [81.6, 99.8]},
+                    "tva":  {"T2V": [87.0, 99.5], "V2T": [84.6, 100.0]},
+                    "tvas": {"T2V": [87.7, 100.0], "V2T": [84.2, 99.8]}}
+  },
+
+  "audio_zeroshot": {
+    "_note": "AudioCaps is text-video-audio retrieval (R@1/R@10); VGGSound-5K is T-AV classification (Acc@1/Acc@10).",
+    "audiocaps": {"tva": [33.2, 75.3]},
+    "vggsound":  {"tav": [40.6, 78.1]}
+  }
+}
