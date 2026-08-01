@@ -4,6 +4,7 @@ transformers==4.39.3
 timm==0.9.16
 easydict
 einops
+toolz
 ftfy
 regex
 tqdm
