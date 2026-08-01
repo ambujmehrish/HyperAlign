@@ -5,6 +5,7 @@ timm==0.9.16
 easydict
 einops
 toolz
+yacs
 ftfy
 regex
 tqdm
