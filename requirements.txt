@@ -7,6 +7,9 @@ einops
 toolz
 yacs
 h5py
+diffusers
+matplotlib
+webdataset
 ftfy
 regex
 tqdm
