@@ -6,6 +6,7 @@ easydict
 einops
 toolz
 yacs
+h5py
 ftfy
 regex
 tqdm
