@@ -40,7 +40,7 @@
     "type": "annoindexed",
     "training": false,
     "name": "vatex_ret",
-    "txt": "datasets/annotations/vatex/descs_ret_test_431.json",
+    "txt": "datasets/annotations/vatex/descs_ret_test.json",
     "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/VATEX/videos_raw",
     "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/VATEX/audios",
     "vision_format": "video_rawvideo",

@@ -83,6 +83,24 @@ for name, (srccfg, modes) in BENCH.items():
         json.dump(_keep, open(_fann, 'w'))
         base_val['txt'] = _fann
         print(f'  audiocaps T-V-A: {len(_keep)}/{len(_ann)} clips have both audio+video')
+    if name == 'vatex':
+        # VATEX clips come from YouTube and some are no longer downloadable. Filter the 1500-clip
+        # test split to what is actually on disk so every mode shares one gallery. The gallery size
+        # is printed because it drives recall directly: evaluating on a smaller gallery inflates
+        # R@1 and is NOT comparable to the paper's 1500 (an earlier config used a 431-clip subset,
+        # which is why VATEX once scored above the paper's finetuned numbers).
+        vxdir = f'{DS}/VATEX'
+        _txt = base_val['txt']
+        _ann = json.load(open(_txt if os.path.isabs(_txt) else f'{E2E}/{_txt}'))
+        _on_disk = lambda d, vid, exts: any(os.path.exists(f'{d}/{vid}{e}') for e in exts)
+        _keep = [a for a in _ann
+                 if _on_disk(f'{vxdir}/videos_raw', a['video_id'], ('.mp4', '.mkv', '.webm'))
+                 and _on_disk(f'{vxdir}/audios', a['video_id'], ('.wav',))]
+        _fann = f'{HERE}/vatex_ret_annotation.json'
+        json.dump(_keep, open(_fann, 'w'))
+        base_val['txt'] = _fann
+        print(f'  vatex gallery: {len(_keep)}/{len(_ann)} test clips have video+audio on disk'
+              + ('' if len(_keep) == len(_ann) else '  ⚠️ smaller gallery than the paper -> footnote it'))
     for mode in modes:
         val = dict(base_val)
         val['task'] = f'ret%{mode}'
