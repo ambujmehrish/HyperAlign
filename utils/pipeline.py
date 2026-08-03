@@ -20,7 +20,8 @@ def train(model, optimizer, train_loader, val_loaders, args, start_step=0, verbo
     dataset_cfg = args.data_cfg.train[0]
     if dist.get_rank() == 0:
         pbar = tqdm(total=run_cfg.num_train_steps, initial=start_step)
-        model_saver = ModelSaver(os.path.join(run_cfg.output_dir, 'ckpt'),remove_before_ckpt=run_cfg.remove_before_ckpt)
+        model_saver = ModelSaver(os.path.join(run_cfg.output_dir, 'ckpt'),remove_before_ckpt=run_cfg.remove_before_ckpt,
+                                 keep_last_n=getattr(run_cfg, 'keep_last_n_ckpt', 1))
     else:
         pbar = NoOp()
         model_saver = NoOp()
@@ -29,7 +30,12 @@ def train(model, optimizer, train_loader, val_loaders, args, start_step=0, verbo
     metric_logger_dict = defaultdict(dict)
     global_step = start_step
 
-    scaler = GradScaler()
+    # AMP: fp16 needs a GradScaler, bf16 does not (it keeps fp32 dynamic range).
+    # args.py clears fp16 when bf16 is set, so gate autocast on either flag -- otherwise
+    # selecting bf16 would silently drop to full fp32.
+    amp_dtype = torch.bfloat16 if getattr(run_cfg, 'bf16', False) else torch.float16
+    amp_enabled = bool(run_cfg.fp16 or getattr(run_cfg, 'bf16', False))
+    scaler = GradScaler(enabled=amp_enabled and not getattr(run_cfg, 'bf16', False))
 
     best_indicator = {}
     evaluate_fn = evaluation_registry[model.config.evaluation_type]
@@ -41,8 +47,8 @@ def train(model, optimizer, train_loader, val_loaders, args, start_step=0, verbo
 
 
 
-        if run_cfg.fp16:
-            with autocast():
+        if amp_enabled:
+            with autocast(dtype=amp_dtype):
                 loss_dict = model(batch, task=task, compute_loss=True)
                 loss = sum(list(loss_dict.values()))
                 loss_dict['total_loss'] = loss
@@ -89,7 +95,7 @@ def train(model, optimizer, train_loader, val_loaders, args, start_step=0, verbo
         # update model params
 
 
-        if run_cfg.fp16:
+        if scaler.is_enabled():
             optimizer.zero_grad()
             scaler.scale(loss).backward()
         else:
@@ -108,7 +114,7 @@ def train(model, optimizer, train_loader, val_loaders, args, start_step=0, verbo
         # if run_cfg.grad_norm != -1:
         #     grad_norm = clip_grad_norm_(model.parameters(), run_cfg.grad_norm)
 
-        if run_cfg.fp16:
+        if scaler.is_enabled():
             scaler.step(optimizer)
             scaler.update()
         else:

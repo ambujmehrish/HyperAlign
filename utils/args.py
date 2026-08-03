@@ -292,6 +292,9 @@ def get_args():
     parser.add_argument('--first_eval', type=str2bool, default=True)
     parser.add_argument('--vision_perceiver_query_num', type=int, default=-1)
     parser.add_argument('--remove_before_ckpt', type=str2bool, default=True)
+    # how many recent model checkpoints to keep (1 = only the newest, the original behaviour).
+    # >1 enables post-hoc checkpoint selection on the real benchmarks.
+    parser.add_argument('--keep_last_n_ckpt', type=int, default=1)
     parser.add_argument('--dataset_mix_type', type=str, default='random')
     parser.add_argument('--valid_freq', type=int, default=10)
     parser.add_argument('--new_params_name', type=str, default=[], nargs='+') 
