@@ -22,7 +22,7 @@ def doc_incidence(B, mask, device, present=None):
 
 
 @torch.no_grad()
-def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None):
+def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None, stats=None):
 
     B = t_frozen.shape[0]
     k = min(k, max(2, B // 4))                                 # adaptive: selective fraction of the shard
@@ -43,6 +43,19 @@ def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None)
         keep = (torch.rand(B, B, device=t.device) > edge_dropout).float()
         keep = torch.minimum(keep, keep.T)                    # keep symmetric
         adj = adj * keep
+    if stats is not None:
+        # Edge COUNT alone does not distinguish a graph wiring genuine topic-mates from one wiring
+        # arbitrary pairs -- top-k always fills its quota, so an unstructured batch yields about as
+        # many edges as a structured one. The mean cosine of RETAINED edges is the quality signal:
+        # if it sits near the batch mean, the semantic edges carry little more relation than chance.
+        n_edge = adj.sum().item() / 2.0                       # symmetric -> undirected count
+        deg = adj.sum(dim=1)
+        off = sim[sim > -1e30]
+        e_sim = (sim * adj)[adj > 0]
+        stats.update(B=B, k=k, edges=n_edge,
+                     deg_mean=deg.mean().item(), isolated=int((deg == 0).sum().item()),
+                     edge_cos=e_sim.mean().item() if e_sim.numel() else float('nan'),
+                     batch_cos=off.mean().item(), batch_cos_std=off.std().item())
     return adj
 
 

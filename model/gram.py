@@ -46,6 +46,7 @@ class GRAM(MMGeneralModule):
         # needs its own switch to be ablated. False => present=None => vanilla GRAM, where a
         # zero-filled modality makes the Gram matrix singular and the volume collapses to 0.
         self.masked_volume = bool(getattr(self.config, 'masked_volume', True))
+        self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
         # optional similarity floor for the semantic kNN; None = plain mutual-kNN
@@ -446,9 +447,21 @@ class GRAM(MMGeneralModule):
         H_doc = doc_incidence(B, mask, device, present=pres).float()
         H_sem = None
         if use_semantic and self.training and self.semantic_edges and t_frozen is not None:
+            _stats = {} if (self._gc_edges % 50 == 1 and dist.get_rank() == 0) else None
             adj = mutual_knn_adj(t_frozen.detach(), k=self.knn_k,
                                  edge_dropout=self.edge_dropout, training=True,
-                                 sim_std=self.sem_sim_std)
+                                 sim_std=self.sem_sim_std, stats=_stats)
+            self._gc_edges += 1
+            if _stats:
+                # edge_cos vs batch_cos is the signal: edges no more similar than the batch average
+                # mean the semantic wiring is not selecting genuine relations.
+                _z = ((_stats['edge_cos'] - _stats['batch_cos']) / _stats['batch_cos_std']
+                      if _stats['batch_cos_std'] > 1e-6 else float('nan'))
+                print(f"[EDGES] step~{self._gc_edges}: B={_stats['B']} k={_stats['k']} "
+                      f"edges={_stats['edges']:.0f} deg={_stats['deg_mean']:.2f} "
+                      f"isolated={_stats['isolated']}/{_stats['B']} | "
+                      f"edge_cos={_stats['edge_cos']:.3f} batch_cos={_stats['batch_cos']:.3f}"
+                      f"(sd {_stats['batch_cos_std']:.3f}) z=+{_z:.2f}", flush=True)
             H_sem = semantic_incidence(adj, B, mask, device)
             if H_sem is not None:
                 H_sem = H_sem.float()
