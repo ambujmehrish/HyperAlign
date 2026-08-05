@@ -16,7 +16,8 @@
   "w_doc": 0.0,
   "w_xdoc": 0.0,
   "w_reg": 0.0,
-  "semantic_edges": false
+  "semantic_edges": false,
+  "masked_volume": false
  },
  "data_cfg": {
   "train": [

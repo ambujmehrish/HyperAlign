@@ -41,6 +41,11 @@ class GRAM(MMGeneralModule):
         # no separate w_xdoc term: the post-graph volume loss is loss_area (see _hg_refine / forward_ret)
         self.w_reg  = float(getattr(self.config, 'w_reg', 0.0))
         self.semantic_edges = bool(getattr(self.config, 'semantic_edges', False))
+        # Per-clip missing-modality masking in the Gramian volume. This is INDEPENDENT of the
+        # hypergraph (it applies in stage A too, and at inference where the graph is off), so it
+        # needs its own switch to be ablated. False => present=None => vanilla GRAM, where a
+        # zero-filled modality makes the Gram matrix singular and the volume collapses to 0.
+        self.masked_volume = bool(getattr(self.config, 'masked_volume', True))
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
         # optional similarity floor for the semantic kNN; None = plain mutual-kNN
@@ -521,7 +526,7 @@ class GRAM(MMGeneralModule):
                     _g = [feat_v_all,feat_a_all,feat_s_all]
             else:
                 _g = [feat_v_all,feat_a_all]
-            volume = volume_computation_masked(feat_t, _g, present=present_from_feats(_g))
+            volume = volume_computation_masked(feat_t, _g, present=present_from_feats(_g) if self.masked_volume else None)
             volume = volume / self.contra_temp
             #AreaT (Video,batch_all)
             if "raw_subtitles" in batch.keys():
@@ -531,7 +536,7 @@ class GRAM(MMGeneralModule):
                     _gT = [feat_v,feat_a,feat_s]
             else:
                 _gT = [feat_v,feat_a]
-            volumeT = volume_computation_masked(feat_t_all, _gT, present=present_from_feats(_gT)).T
+            volumeT = volume_computation_masked(feat_t_all, _gT, present=present_from_feats(_gT) if self.masked_volume else None).T
             volumeT = volumeT / self.contra_temp
             rank = dist.get_rank()
             bs = feat_t.size(0)

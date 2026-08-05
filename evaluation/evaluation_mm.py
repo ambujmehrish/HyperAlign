@@ -291,7 +291,10 @@ def evaluate_ret(model, tasks, val_loader, global_step):
         # volume_computation_masked), so tva stays 3-modal where present but degrades to tv where audio
         # is gone. present=all-ones (every clip complete) == volume_computation byte-for-byte -> the
         # normal GRAM eval is unchanged. Same logic in train + eval + validation.
-        _present = torch.stack([(f.norm(dim=-1) > 0.5).float() for f in _feats], dim=1)
+        # masked_volume=False reproduces vanilla GRAM (a missing modality collapses the volume);
+        # it exists so the masking can be ablated separately from the hypergraph.
+        _present = torch.stack([(f.norm(dim=-1) > 0.5).float() for f in _feats], dim=1) \
+            if getattr(model.config, 'masked_volume', True) else None
         area = volume_computation_masked(feat_t, _feats, present=_present)
         LOGGER.info(f"[VOLUME] task={_task} -> volume over T+"
                     f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal")

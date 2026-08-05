@@ -7,22 +7,16 @@
   "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
   "save_best": true,
   "valid_freq": 10,
-  "new_params_name": [
-   "hgnn"
-  ],
-  "new_lr": 0.0005,
   "keep_last_n_ckpt": 5
  },
  "model_cfg": {
   "default": "./config/gram/default_model_cfg.json",
   "vision_encoder_type": "evaclip01_giant",
-  "stage": "B",
-  "w_doc": 1.0,
-  "w_reg": 0.1,
-  "semantic_edges": true,
-  "knn_k": 8,
-  "edge_dropout": 0.3,
-  "hgnn_layers": 2,
+  "stage": "A",
+  "w_doc": 0.0,
+  "w_xdoc": 0.0,
+  "w_reg": 0.0,
+  "semantic_edges": false,
   "masked_volume": true
  },
  "data_cfg": {
