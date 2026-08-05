@@ -22,7 +22,8 @@ def doc_incidence(B, mask, device, present=None):
 
 
 @torch.no_grad()
-def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None, stats=None):
+def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None, stats=None,
+                   weighted=False):
 
     B = t_frozen.shape[0]
     k = min(k, max(2, B // 4))                                 # adaptive: selective fraction of the shard
@@ -43,15 +44,24 @@ def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None,
         keep = (torch.rand(B, B, device=t.device) > edge_dropout).float()
         keep = torch.minimum(keep, keep.T)                    # keep symmetric
         adj = adj * keep
+    if weighted:
+        # Edge STRENGTH = caption cosine (w_ij = cos(c_i, c_j)), applied only here, at the end.
+        # topk / mutual / threshold / dropout above are SET operations and must run on the binary
+        # mask: scattering cosines before `adj * adj.T` would square them (0.9*0.9=0.81) and turn a
+        # mutually-negative pair positive. Negatives are clamped away -- a negative incidence weight
+        # would subtract messages and can make a degree sum cancel toward zero. sim is symmetric and
+        # the mask is symmetric, so the weighted adjacency stays symmetric.
+        adj = adj * sim.clamp(min=0.0)
     if stats is not None:
         # Edge COUNT alone does not distinguish a graph wiring genuine topic-mates from one wiring
         # arbitrary pairs -- top-k always fills its quota, so an unstructured batch yields about as
         # many edges as a structured one. The mean cosine of RETAINED edges is the quality signal:
         # if it sits near the batch mean, the semantic edges carry little more relation than chance.
-        n_edge = adj.sum().item() / 2.0                       # symmetric -> undirected count
-        deg = adj.sum(dim=1)
+        bin_adj = (adj > 0).float()                           # weights would otherwise skew counts
+        n_edge = bin_adj.sum().item() / 2.0                   # symmetric -> undirected count
+        deg = bin_adj.sum(dim=1)
         off = sim[sim > -1e30]
-        e_sim = (sim * adj)[adj > 0]
+        e_sim = sim[adj > 0]
         stats.update(B=B, k=k, edges=n_edge,
                      deg_mean=deg.mean().item(), isolated=int((deg == 0).sum().item()),
                      edge_cos=e_sim.mean().item() if e_sim.numel() else float('nan'),

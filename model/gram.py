@@ -49,6 +49,9 @@ class GRAM(MMGeneralModule):
         # Apply the presence mask to SEMANTIC edges as well as doc edges (see semantic_incidence).
         # False restores the earlier behaviour where the graph imputed missing modalities.
         self.sem_edge_presence_mask = bool(getattr(self.config, 'sem_edge_presence_mask', True))
+        # Weight semantic edges by caption cosine (w_ij = cos(c_i, c_j)) instead of a flat 1.0.
+        # False = the earlier binary graph, where a 0.31 neighbour counted as much as a 0.95 one.
+        self.sem_edge_weighted = bool(getattr(self.config, 'sem_edge_weighted', True))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -453,7 +456,8 @@ class GRAM(MMGeneralModule):
             _stats = {} if (self._gc_edges % 50 == 1 and dist.get_rank() == 0) else None
             adj = mutual_knn_adj(t_frozen.detach(), k=self.knn_k,
                                  edge_dropout=self.edge_dropout, training=True,
-                                 sim_std=self.sem_sim_std, stats=_stats)
+                                 sim_std=self.sem_sim_std, stats=_stats,
+                                 weighted=self.sem_edge_weighted)
             self._gc_edges += 1
             if _stats:
                 # edge_cos vs batch_cos is the signal: edges no more similar than the batch average
