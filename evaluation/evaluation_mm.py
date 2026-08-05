@@ -285,6 +285,12 @@ def evaluate_ret(model, tasks, val_loader, global_step):
                     f"Refusing to compute a {len(_feats)+1}-modal volume and label it {_task}.")
             _feats.append(_f)
         assert _feats, f"task {_task}: no non-text modality available for the volume"
+        # Synthetic missing-modality harness (off unless HA_DROP_MOD is set): zero-fill one modality
+        # for a deterministic fraction of gallery clips so the masked vs vanilla volume behaviour can
+        # be measured on identical inputs. Zeroing is exactly how a genuinely absent modality arrives
+        # here, so the presence detection below needs no special casing.
+        from evaluation.missing_modality import apply as _apply_missing
+        _feats, _drop_info = _apply_missing(_feats, _mods)
         # per-clip missing-modality mask WITHIN this mode (mode-set _feats unchanged): a modality is
         # absent for clip j if its feature is a zero vector (the loader zero-fills a modality it could
         # not load). A missing modality is dropped from THAT clip's volume only (phantom-identity in
@@ -297,7 +303,10 @@ def evaluate_ret(model, tasks, val_loader, global_step):
             if getattr(model.config, 'masked_volume', True) else None
         area = volume_computation_masked(feat_t, _feats, present=_present)
         LOGGER.info(f"[VOLUME] task={_task} -> volume over T+"
-                    f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal")
+                    f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal"
+                    f"  masked_volume={getattr(model.config, 'masked_volume', True)}"
+                    + (f"  drop={_drop_info['mod']}@{_drop_info['rate']}"
+                       f"({_drop_info['n_dropped']}/{_drop_info['n_clips']})" if _drop_info else "  drop=none"))
         
         min_values_volume = torch.min(area, 1).values
         mean_values_volume = torch.mean(min_values_volume)
