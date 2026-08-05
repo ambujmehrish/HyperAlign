@@ -46,6 +46,9 @@ class GRAM(MMGeneralModule):
         # needs its own switch to be ablated. False => present=None => vanilla GRAM, where a
         # zero-filled modality makes the Gram matrix singular and the volume collapses to 0.
         self.masked_volume = bool(getattr(self.config, 'masked_volume', True))
+        # Apply the presence mask to SEMANTIC edges as well as doc edges (see semantic_incidence).
+        # False restores the earlier behaviour where the graph imputed missing modalities.
+        self.sem_edge_presence_mask = bool(getattr(self.config, 'sem_edge_presence_mask', True))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -462,7 +465,8 @@ class GRAM(MMGeneralModule):
                       f"isolated={_stats['isolated']}/{_stats['B']} | "
                       f"edge_cos={_stats['edge_cos']:.3f} batch_cos={_stats['batch_cos']:.3f}"
                       f"(sd {_stats['batch_cos_std']:.3f}) z=+{_z:.2f}", flush=True)
-            H_sem = semantic_incidence(adj, B, mask, device)
+            H_sem = semantic_incidence(adj, B, mask, device,
+                                       present=pres if self.sem_edge_presence_mask else None)
             if H_sem is not None:
                 H_sem = H_sem.float()
         with torch.cuda.amp.autocast(enabled=False):

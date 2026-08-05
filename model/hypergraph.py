@@ -59,14 +59,26 @@ def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None,
     return adj
 
 
-def semantic_incidence(adj, B, mask, device):
+def semantic_incidence(adj, B, mask, device, present=None):
     """H_sem (|V|, B): semantic edge j connects the non-text vertices of doc j and its mutual
-    neighbours. adj: (B, B) from mutual_knn_adj (or None)."""
+    neighbours. adj: (B, B) from mutual_knn_adj (or None).
+
+    present (B, k1) 0/1: same contract as doc_incidence -- a MISSING modality is disconnected from
+    the semantic edges too, so it neither sends nor receives graph messages and stays exactly zero.
+    Without it a zero vertex still joined every semantic edge, was filled in by its neighbours, and
+    then read as PRESENT downstream (present_from_feats runs on the refined features), so training
+    scored an imputed full-arity volume while inference scored a masked lower-arity one.
+    present=None restores that earlier imputing behaviour."""
     if adj is None or adj.sum() == 0:
         return None
     k1 = len(mask)
     members = adj + torch.eye(B, device=device)
-    return members.repeat_interleave(k1, dim=0)
+    H = members.repeat_interleave(k1, dim=0)
+    if present is not None:
+        # repeat_interleave emits rows doc-major (row j*k1+m belongs to doc j, modality m), which is
+        # exactly how a (B, k1) presence tensor flattens -> one reshape aligns them.
+        H = H * present.reshape(-1, 1)
+    return H
 
 
 class GatedHGNN(nn.Module):
