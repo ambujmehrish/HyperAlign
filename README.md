@@ -1,62 +1,281 @@
 # HyperAlign
 
-## Storage layout on Leonardo
+Hypergraph-refined multimodal alignment on top of [GRAM](https://github.com/ispamm/GRAM)
+(Gramian Multimodal Representation Learning, ICLR 2025), with per-clip missing-modality
+handling. Text, video, audio, subtitle and depth are aligned by the Gramian volume of their
+embedding vectors; a gated hypergraph refines the non-text embeddings during training.
+
+---
+
+## 1. Storage layout on Leonardo
 
 Home has a 50 GB quota, so the project is split across three locations:
 
 | What | Where | Env var |
 |---|---|---|
 | Code (this repo) | `/leonardo/home/userexternal/amehrish/HyperAlign` | `HA_CODE` |
-| Big folders: `pretrained_weights`, `datasets`, `data`, `workdir_smoke_ha`, `workdir_ftsmoke`, `workdir_v2full` (+ new training outputs `workdir/`, `workdir_pretrain/`) | `/leonardo_work/AIFAC_S07_041/HyperAlign` | `HA_WORK` |
+| Big folders: `pretrained_weights`, `datasets`, `data`, `workdir*` | `/leonardo_work/AIFAC_S07_041/HyperAlign` | `HA_WORK` |
 | Raw dataset (videos / audios / annotations) | `/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset` | `HA_DATA` |
 
-All absolute paths in the configs and slurm scripts follow this layout. Model code and
-some configs also use paths **relative to the repo root** (`./pretrained_weights/...`,
-`datasets/annotations/...`), which are resolved through symlinks created by the setup
-script below. All training outputs (checkpoints) are written to `$HA_WORK`, never to home.
+Model code and some configs use paths **relative to the repo root** (`./pretrained_weights/…`,
+`datasets/annotations/…`); `setup_paths.sh` symlinks the work-area folders in so those resolve.
+All training output goes to `$HA_WORK`, never to home.
 
-## One-time setup
+**Always run from the home checkout.** A stale copy of the code also lives in the work area
+with the old (broken) paths; submitting from there fails confusingly.
+
+## 2. One-time setup
 
 ```bash
 cd /leonardo/home/userexternal/amehrish/HyperAlign
-bash setup_paths.sh
+bash setup_env.sh      # conda env in $HA_WORK/envs (caches redirected off home quota)
+bash setup_paths.sh    # symlink big folders, create log dirs, sanity-check key files
 ```
 
-This symlinks the big folders from `$HA_WORK` into the repo root (symlinks cost no
-quota), creates the log directories, and sanity-checks that the key files exist
-(VAST foundation checkpoint, BERT weights, annotations, dataset root). Fix anything
-it reports as `MISSING` before submitting jobs.
+`setup_env.sh` installs Python 3.10, CUDA torch 2.1.2 (cu121), ffmpeg and `requirements.txt`.
+`setup_paths.sh` reports anything `MISSING` — fix those before submitting. The VAST foundation
+checkpoint is expected at
+`$HA_WORK/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt`.
 
-The slurm scripts source `slurm_scripts/env.sh`, which activates the
-`Multimodal_hypergraph` conda env. It looks for conda in the usual places
-(`$HOME/miniconda3`, `$HOME/anaconda3`, `$HA_WORK/...`); if yours is elsewhere:
+Job scripts source `slurm_scripts/env.sh`, which locates conda and activates the environment.
+Override with `CONDA_SH=…` or `HA_CONDA_ENV=…` (name or full prefix path) if yours differs.
 
-```bash
-export CONDA_SH=/path/to/miniconda3/etc/profile.d/conda.sh
+---
+
+## 3. The algorithm
+
+**Notation.** A shard holds `B` documents (per GPU — the graph is built *before* the cross-GPU
+gather, so documents on different GPUs are never neighbours). `M ⊆ {V,A,S,D}` are the non-text
+modalities the task uses, `k₁ = |M|`, embeddings are `d = 512`-dimensional.
+
+### Step 1 — Encode and project
+
+Each modality goes through its encoder (EVA-CLIP-giant / BEATs / BERT), a pooling step and a
+linear contrastive head, then L2 normalisation:
+
+```
+u_j^m = W_m · pool(Enc_m(x_j^m))          (pre-norm, kept for L_reg)
+z_j^m = u_j^m / ‖u_j^m‖                   m ∈ M
+c_j   = u_j^T / ‖u_j^T‖                   caption / query text
 ```
 
-## Running
+### Step 2 — Presence detection
+
+A modality the loader could not read is zero-filled. Real features are unit-norm, so:
+
+```
+p_{j,m} = 1[ ‖z_j^m‖ > 0.5 ]  ∈ {0,1}
+```
+
+### Step 3 — Semantic graph over documents  *(training only, stage B)*
+
+Built from **caption** similarity, under `torch.no_grad()` and on detached text features — the
+topology is structure, not something learned, and text is never a graph vertex.
+
+```
+S = C Cᵀ                     S_ij = cos(c_i, c_j)   (C has unit rows)
+S_ii = −∞                    a document cannot select itself
+k_eff = min(k, max(2, ⌊B/4⌋))
+N(i) = top-k_eff of row i    (rank-based)
+A_ij = 1[ j ∈ N(i) ]         directed, binary
+```
+
+Three filters, all multiplicative masks, applied while the adjacency is still **binary**:
+
+```
+mutual     M ← A ⊙ Aᵀ                                    (symmetric; kills hubs)
+floor      M ← M ⊙ 1[ S ≥ μ_S + σ·s_S ]                  μ_S, s_S over off-diagonal S
+dropout    M ← M ⊙ R,  R = min(R′, R′ᵀ),  R′_ij ~ Bern(1−p)
+```
+
+Only then are edge **strengths** applied — doing it earlier would square them and flip
+mutually-negative pairs positive:
+
+```
+W = M ⊙ max(S, 0)            w_ij = cos(c_i, c_j) on surviving edges
+```
+
+### Step 4 — Incidence matrices
+
+Vertices are (document, modality) pairs, indexed doc-major as `j·k₁ + m`.
+
+```
+H_doc[(j,m), e] = p_{j,m} · 1[e = j]                     block-diagonal
+H_sem[(j,m), e] = p_{j,m} · (W + I)_{j,e}                cross-document
+H = [ H_doc | H_sem ]                                    (B·k₁) × (2B)
+```
+
+The `p_{j,m}` factor appears in **both**: an absent modality has degree 0, so it neither sends
+nor receives messages and stays exactly zero.
+
+### Step 5 — Degree normalisation
+
+```
+D_E = diag(1ᵀH) ∨ 1        edge degree   (how many vertices an edge holds)
+D_V = diag(H1)  ∨ 1        vertex degree (how many edges a vertex is in)
+H_e = H D_E⁻¹              column-normalised  → V→E is an average
+H_v = D_V⁻¹ H              row-normalised     → E→V is an average
+```
+
+Averaging rather than summing keeps a large hyperedge from shouting louder than a small one.
+The `∨ 1` (clamp) makes a degree-0 row divide by 1 instead of 0.
+
+### Step 6 — Gated hypergraph message passing  (L ≤ 2 layers)
+
+```
+F⁰ = [ z_j^m ]                                       (B·k₁) × d
+Fᴱ_ℓ  = GELU( H_eᵀ Fℓ⁻¹ W_V^ℓ )                      vertices → edges
+Fᴺ_ℓ  = H_v Fᴱ_ℓ W_E^ℓ        (GELU if ℓ < L)        edges → vertices
+Fℓ    = Fℓ⁻¹ + tanh(g_ℓ) · Fᴺ_ℓ                      gated residual
+```
+
+`W_V, W_E` are bias-free, so a zero vertex contributes exactly zero. Vertices inside one
+hyperedge are **not** wired pairwise — they all read the same edge summary, which is what makes
+this a hypergraph rather than a graph. Run in fp32 (autocast disabled).
+
+### Step 7 — Refined embeddings and document embedding
+
+```
+ẑ_j^m = Fᴸ[j,m] / ‖Fᴸ[j,m]‖
+h_j   = W_h ( Σ_m p_{j,m} Fᴸ[j,m] ) / max(Σ_m p_{j,m}, 1)        mean over PRESENT only
+ĥ_j   = h_j / ‖h_j‖
+```
+
+`c_j` is left untouched — refining the text anchor with its own document would leak.
+
+### Step 8 — Masked Gramian volume
+
+For query `i` and gallery document `j` over modalities `m₁…m_L`, build the Gram matrix of
+`[ c_i, ẑ_j^{m₁}, …, ẑ_j^{m_L} ]` and let `p̃_j = [1, p_{j,m₁}, …, p_{j,m_L}]` (text always
+present):
+
+```
+G ← G ⊙ (p̃ p̃ᵀ) + diag(1 − p̃)          zero the missing row/col, put 1 on its diagonal
+vol(i,j) = √( |det G| + ε )
+```
+
+A missing modality becomes an **orthonormal phantom axis** contributing a determinant factor of
+exactly 1, so `det G` reduces to the determinant of the present sub-Gram — the clip is scored at
+its own arity. With all modalities present this is byte-for-byte the unmasked volume; without the
+masking a zero row makes `G` singular and `vol = 0` for **every** query, so incomplete clips all
+tie and become unrankable.
+
+For two vectors the volume is `√(1 − cos²) = |sin θ|`, i.e. the parallelogram area — the same
+geometry at arity 2.
+
+### Step 9 — Losses
+
+With learnable temperature `τ`, in-batch targets, label smoothing 0.1:
+
+```
+L_area = ½[ CE(−vol/τ, y) + CE(−volᵀ/τ, y) ]              GRAM's volume contrastive loss
+L_doc  = ½[ CE(−vol₂(c, ĥ)/τ, y) + CE(−vol₂(ĥ, c)/τ, y) ]  arity-2, robust by construction
+L_reg  = Σ_m relu(1 − std(u^m)) + relu(1 − std(h))         VICReg-style variance hinge
+L_itm  = image-text matching cross-entropy
+
+L = L_area + w_doc · L_doc + w_reg · L_reg + L_itm
+```
+
+`L_area` is computed on the **refined** `ẑ`, so the graph is on the main path, not a side branch.
+`L_doc` folds a document into a single vector, so its 2×2 Gram can never collapse regardless of
+how many modalities are missing.
+
+### Step 10 — Inference
+
+**The hypergraph is not used at inference.** Evaluation is GRAM-faithful: raw `z` (no
+refinement), masked Gramian volume, then ITM re-ranking of the top 50. The graph's whole
+contribution is the encoder weights it shaped during training; the masked volume, by contrast,
+is active in training *and* evaluation.
+
+---
+
+## 4. Configuration flags
+
+Set in `model_cfg` of a pretrain/finetune config.
+
+| Flag | Default | Effect |
+|---|---|---|
+| `stage` | `"A"` | `A` = plain GRAM (no hypergraph, `hgnn` not constructed). `B` = hypergraph on. |
+| `masked_volume` | `true` | Step 8 masking. `false` → vanilla GRAM: missing modality ⇒ singular Gram ⇒ volume 0. |
+| `semantic_edges` | `false` | Enable cross-document edges (Step 3). Doc edges are always on. |
+| `sem_edge_presence_mask` | `true` | Apply `p_{j,m}` to `H_sem` too. `false` → the graph imputes missing modalities. |
+| `sem_edge_weighted` | `true` | `w_ij = cos(c_i,c_j)`. `false` → binary edges (all neighbours count equally). |
+| `sem_sim_std` | unset | Similarity floor `σ` (Step 3). Unset ⇒ no floor, selection is purely rank-based. |
+| `knn_k` | 4 | Neighbour budget per document, before the adaptive clamp. |
+| `edge_dropout` | 0.3 | Nominal rate; symmetrisation makes the **effective** rate `1−(1−p)² = 51%`. |
+| `hgnn_layers` | 2 | Message-passing layers (hard-capped at 2 — more over-smooths). |
+| `w_doc`, `w_reg` | 0, 0 | Weights of `L_doc`, `L_reg`. |
+
+Run-level: `keep_last_n_ckpt` (default 1) retains a rolling window of model checkpoints so the
+best can be chosen post-hoc; optimizer states always prune to the newest. `bf16: true` now
+selects bf16 autocast correctly (it previously fell through to full fp32).
+
+### Ablation matrix
+
+| Config | stage | masked_volume | Isolates |
+|---|---|---|---|
+| `gram_base.json` | A | false | vanilla GRAM — the published baseline |
+| `gram_base_maskedvol.json` | A | true | the masked volume alone |
+| `hyperalign.json` | B | true | the full model |
+
+---
+
+## 5. Running
 
 ```bash
-# 24-step training smoke (debug QOS, ~30 min)
+# smoke tests (debug QOS, ~30 min)
 sbatch slurm_scripts/smoke_train.sh
+sbatch slurm_scripts/ft_smoke.sh msrvtt
 
-# full pretraining (auto-resumes from $HA_WORK/workdir_pretrain/4model)
-sbatch slurm_scripts/run_pretrain.sh
+# pretraining (24 h; auto-resumes from $HA_WORK/workdir_*/4model on resubmit)
+sbatch slurm_scripts/run_pretrain.sh            # HyperAlign, stage B
+sbatch slurm_scripts/run_gram_base.sh           # ablation, stage A
+sbatch slurm_scripts/run_gram_base_maskedvol.sh # ablation, stage A + masked volume
 
-# finetuning: all 5 benchmarks (msrvtt_depth waits on msrvtt via slurm dependency)
+# finetuning: all 5 benchmarks (msrvtt_depth chains after msrvtt)
 bash slurm_scripts/finetune_all.sh
 
-# zero-shot eval (12 benchmark/mode configs) and finetuned-checkpoint eval
-sbatch benchmark_eval/eval_zeroshot.sh
+# evaluation
+export GRAM_CKPT=$HA_WORK/workdir_pretrain/4model/ckpt/best_*.pt
+sbatch benchmark_eval/eval_zeroshot.sh          # 12 benchmark/mode configs + summary table
 sbatch benchmark_eval/eval_finetune.sh msrvtt
+
+# missing-modality robustness: drop a modality from a growing share of gallery clips,
+# with the masked volume ON and OFF, on identical inputs
+sbatch benchmark_eval/eval_missing_modality.sh msrvtt_tva a
 ```
 
-Notes:
-- The VAST foundation checkpoint referenced by the pretrain configs is expected at
-  `$HA_WORK/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt`
-  (`setup_paths.sh` searches `pretrained_weights/` and symlinks it if it lives elsewhere).
-- SLURM jobs are billed to account `AIFAC_S07_041` (`#SBATCH -A`); change it in
-  `slurm_scripts/*.sh` and `benchmark_eval/*.sh` if your account differs.
-- Job logs go to `slurm_scripts/logs/` and `benchmark_eval/{logs,smoke_logs}/` in home
-  (small text files only).
+`benchmark_eval/gram_paper_baselines.json` holds the published GRAM numbers plus ~15 competitor
+methods from GRAM's own tables, so results can be compared without re-reading the paper.
+`eval_summary.py` prints ours-vs-paper automatically after `eval_zeroshot.sh`.
+
+## 6. Training diagnostics
+
+Two lines are logged every 50 steps on rank 0:
+
+```
+[GATE]  step~51: [0.83, 0.71]
+[EDGES] step~51: B=64 k=8 edges=107 deg=3.34 isolated=0/64 | edge_cos=0.412 batch_cos=0.180(sd 0.140) z=+1.66
+```
+
+- **`[GATE]`** — the residual gates. Trending to 0 means the model is switching the graph off.
+- **`[EDGES]`** — graph health. `isolated` climbing toward `B` means `sem_sim_std` is too
+  aggressive for the data; lower it. The **z-score** (how far retained-edge similarity sits above
+  the batch mean, in batch std units) is the quality signal: near 0 means the semantic wiring is
+  selecting no better than chance, since edge *count* alone cannot distinguish a graph wiring
+  genuine topic-mates from one wiring arbitrary pairs.
+
+## 7. Known gaps
+
+- **`L_reg` does not mask missing modalities.** Zero rows enter the batch variance, inflating it
+  and weakening the hinge exactly where data is sparsest.
+- **ITM re-ranking is not presence-masked** — it conditions on full `condition_feats_*` even when
+  the volume saw fewer modalities.
+- **The `tv` column uses a different metric path** than `tva`/`tvas` (pairwise ITM vs
+  Gramian-volume ITM; see the comment in `eval_summary.py`), so within-row comparisons across
+  modality settings are not strictly like-for-like.
+- **VATEX gallery** is the 1500-clip test split filtered to clips on disk (~1358); the gallery
+  size is printed by `make_configs.py` and must be footnoted, since a smaller gallery inflates
+  recall.
+- **Whether a genuinely missing modality yields a zero feature** is unverified — presence
+  detection assumes it, but the zero-filling happens in `data/`, which is not part of this repo.
