@@ -21,6 +21,7 @@
   "w_reg": 0.1,
   "semantic_edges": true,
   "knn_k": 8,
+  "sem_sim_std": 2.5,
   "edge_dropout": 0.3,
   "hgnn_layers": 2,
   "masked_volume": true
