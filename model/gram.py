@@ -52,6 +52,10 @@ class GRAM(MMGeneralModule):
         # Weight semantic edges by caption cosine (w_ij = cos(c_i, c_j)) instead of a flat 1.0.
         # False = the earlier binary graph, where a 0.31 neighbour counted as much as a 0.95 one.
         self.sem_edge_weighted = bool(getattr(self.config, 'sem_edge_weighted', True))
+        # Build the hypergraph over the whole DDP batch rather than per-GPU shard. The contrastive
+        # loss is already global (local queries vs gathered gallery); this makes the GRAPH global
+        # too, so a document's neighbours are drawn from world_size x more candidates.
+        self.global_graph = bool(getattr(self.config, 'global_graph', False))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -444,8 +448,22 @@ class GRAM(MMGeneralModule):
 
         from .hypergraph import doc_incidence, mutual_knn_adj, semantic_incidence
         mask = tuple(m for m in ('V', 'A', 'S', 'D') if m in feats)
-        B = feats[mask[0]].shape[0]
+        B_local = feats[mask[0]].shape[0]
         device = feats[mask[0]].device
+        # GLOBAL GRAPH: build ONE hypergraph over the whole DDP batch instead of one per shard.
+        # Only the 512-d contrastive embeddings are gathered (~1.5 MB/step for T+V+A over 4 ranks),
+        # never encoder hidden states. all_gather_with_grad is required, not concat_all_gather: a
+        # refined embedding depends on every document in the graph, so a no-grad gather would
+        # silently drop the cross-rank terms of d(z_hat_i)/d(z_j).
+        _ws = dist.get_world_size() if dist.is_initialized() else 1
+        go_global = bool(self.global_graph) and _ws > 1
+        if go_global:
+            _rank = dist.get_rank()
+            feats = {m: all_gather_with_grad(v) for m, v in feats.items()}
+            if t_frozen is not None:
+                # topology only, and mutual_knn_adj detaches anyway -> a no-grad gather is correct
+                t_frozen = concat_all_gather(t_frozen)
+        B = feats[mask[0]].shape[0]
         # per-clip modality presence (a zero-filled feature = modality absent for that clip). A missing
         # modality is masked out of the doc edge (no messages) and the fusion mean (no dilution), so the
         # graph's relation-building is unaffected by absent modalities. All-present -> ones -> unchanged.
@@ -457,7 +475,8 @@ class GRAM(MMGeneralModule):
             adj = mutual_knn_adj(t_frozen.detach(), k=self.knn_k,
                                  edge_dropout=self.edge_dropout, training=True,
                                  sim_std=self.sem_sim_std, stats=_stats,
-                                 weighted=self.sem_edge_weighted)
+                                 weighted=self.sem_edge_weighted,
+                                 gen_seed=(987654321 + self._gc_edges) if go_global else None)
             self._gc_edges += 1
             if _stats:
                 # edge_cos vs batch_cos is the signal: edges no more similar than the batch average
@@ -476,6 +495,12 @@ class GRAM(MMGeneralModule):
         with torch.cuda.amp.autocast(enabled=False):
             z32 = {m: feats[m].float() for m in feats}
             z_hat, h, h_prenorm = self.hgnn(z32, mask, H_doc, H_sem, present=pres)
+        if go_global:
+            # GatherLayer concatenates rank-ordered, so this rank owns rows [rank*B_local, ...).
+            # Slicing back keeps every caller downstream (losses, the later gathers) unchanged.
+            _sl = slice(_rank * B_local, (_rank + 1) * B_local)
+            z_hat = {m: v[_sl] for m, v in z_hat.items()}
+            h, h_prenorm = h[_sl], h_prenorm[_sl]
         return z_hat, h, h_prenorm
 
     def forward_ret(self, batch, task, compute_loss=True):

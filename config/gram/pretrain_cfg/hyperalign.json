@@ -24,6 +24,7 @@
   "sem_sim_std": 2.5,
   "edge_dropout": 0.3,
   "hgnn_layers": 2,
+  "global_graph": false,
   "masked_volume": true
  },
  "data_cfg": {

@@ -23,7 +23,7 @@ def doc_incidence(B, mask, device, present=None):
 
 @torch.no_grad()
 def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None, stats=None,
-                   weighted=False):
+                   weighted=False, gen_seed=None):
 
     B = t_frozen.shape[0]
     k = min(k, max(2, B // 4))                                 # adaptive: selective fraction of the shard
@@ -41,7 +41,17 @@ def mutual_knn_adj(t_frozen, k=4, edge_dropout=0.3, training=True, sim_std=None,
         thr = off.mean() + sim_std * off.std()                # adaptive per-batch floor
         adj = adj * (sim >= thr).float()
     if training and edge_dropout > 0:
-        keep = (torch.rand(B, B, device=t.device) > edge_dropout).float()
+        if gen_seed is None:
+            _r = torch.rand(B, B, device=t.device)
+        else:
+            # With a GLOBAL graph every rank rebuilds the same adjacency independently, so the
+            # dropout draw must match across ranks -- otherwise each rank refines with a different
+            # graph and DDP averages gradients of four different functions. A seed shared by all
+            # ranks and advanced per step keeps the mask identical without extra communication.
+            _g = torch.Generator(device=t.device)
+            _g.manual_seed(int(gen_seed))
+            _r = torch.rand(B, B, device=t.device, generator=_g)
+        keep = (_r > edge_dropout).float()
         keep = torch.minimum(keep, keep.T)                    # keep symmetric
         adj = adj * keep
     if weighted:

@@ -204,11 +204,36 @@ Set in `model_cfg` of a pretrain/finetune config.
 | `knn_k` | 4 | Neighbour budget per document, before the adaptive clamp. |
 | `edge_dropout` | 0.3 | Nominal rate; symmetrisation makes the **effective** rate `1−(1−p)² = 51%`. |
 | `hgnn_layers` | 2 | Message-passing layers (hard-capped at 2 — more over-smooths). |
+| `global_graph` | `false` | Build ONE hypergraph over the whole DDP batch instead of one per GPU shard. See below. |
 | `w_doc`, `w_reg` | 0, 0 | Weights of `L_doc`, `L_reg`. |
 
 Run-level: `keep_last_n_ckpt` (default 1) retains a rolling window of model checkpoints so the
 best can be chosen post-hoc; optimizer states always prune to the newest. `bf16: true` now
 selects bf16 autocast correctly (it previously fell through to full fp32).
+
+### Global vs per-shard graph
+
+By default the graph is built **per GPU shard** — `_hg_refine` runs before the cross-GPU gather,
+so 4 GPUs give 4 disjoint graphs of `B/4` documents and clips on different GPUs can never be
+neighbours. `global_graph: true` gathers the 512-d contrastive embeddings (~1.5 MB/step for
+T+V+A over 4 ranks — never encoder features), builds one graph over the full batch, refines, and
+slices each rank's rows back out. The contrastive loss was already global; this makes the *graph*
+global too, so neighbours are drawn from `world_size`x more candidates.
+
+Two correctness requirements, both handled:
+
+- Gathering uses `all_gather_with_grad`, not `concat_all_gather`. A refined embedding depends on
+  every document in the graph, so a no-grad gather would silently drop the cross-rank terms of
+  `∂ẑ_i/∂z_j`.
+- Edge dropout draws from a generator seeded identically on every rank and advanced per step.
+  Each rank rebuilds the same global adjacency independently, so an unsynchronised draw would
+  give each rank a different graph and DDP would average gradients of different functions.
+
+**Recalibrate `knn_k` when enabling it.** At `B=64` per shard, `knn_k=8` wires each document to
+12.7% of candidates; at `B=256` the same 8 is only 3.1%, so the graph becomes relatively sparser.
+Use `knn_k ≈ 32` to hold density (the adaptive clamp `min(k, max(2, ⌊B/4⌋))` permits it). The
+`sem_sim_std` threshold improves for free — its mean/std are estimated over ~65k pairs instead
+of ~4k.
 
 ### Ablation matrix
 
