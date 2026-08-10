@@ -21,7 +21,7 @@
   "w_reg": 0.1,
   "semantic_edges": true,
   "knn_k": 32,
-  "sem_sim_std": 2.5,
+  "sem_sim_std": 0.5,
   "edge_dropout": 0.3,
   "hgnn_layers": 2,
   "global_graph": true,

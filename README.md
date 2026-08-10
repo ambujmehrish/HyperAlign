@@ -238,7 +238,16 @@ Two correctness requirements, both handled:
 | global, B=256 | k_eff 8 → 3.1% | k_eff 32 → **12.5%** |
 
 `hyperalign.json` ships `global_graph: true` with `knn_k: 32`, which holds the original 12.7%
-density at the larger batch. Note `knn_k=32` in *per-shard* mode would be clamped to 16 by the
+density at the larger batch.
+
+**`sem_sim_std` must be set against measured statistics, not assumed ones.** Real caption
+embeddings are far more spread than a Gaussian intuition suggests — the first `[EDGES]` line on
+VAST data reported `batch_cos=0.259 (sd 0.513)`, with retained edges at `edge_cos=0.730`, i.e.
+z=+0.92. Since the threshold is `mean + sigma*sd` and cosine is bounded by 1.0, any
+`sem_sim_std` above ~1.4 exceeds the bound and silently kills **every** semantic edge (the
+adjacency sums to zero, `semantic_incidence` returns `None`, and only doc edges remain). The
+config ships 0.5 (threshold ~0.516) accordingly. Re-read `batch_cos`/`sd` from `[EDGES]` after
+any change to the text encoder or batch size before touching this value. Note `knn_k=32` in *per-shard* mode would be clamped to 16 by the
 ⌊B/4⌋ term and double the density instead — so the two flags must be changed together, and
 `gram_base*.json` (stage A, no graph) are unaffected. `sem_sim_std` improves for free: its
 mean/std are estimated over ~65k pairs instead of ~4k.
