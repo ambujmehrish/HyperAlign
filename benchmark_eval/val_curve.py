@@ -44,7 +44,10 @@ def parse(path):
                 continue
             key = SECTIONS[sec]
             if isinstance(vals, dict) and key in vals:
-                out[sec].append((step, float(vals[key])))
+                # the log emits both a "step N" banner and a "history best step: N" banner for the
+                # same validation, each followed by the same dict -- keep one row per step
+                if not out[sec] or out[sec][-1][0] != step:
+                    out[sec].append((step, float(vals[key])))
                 sec = None
     return out
 
