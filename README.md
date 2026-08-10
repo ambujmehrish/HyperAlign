@@ -229,11 +229,19 @@ Two correctness requirements, both handled:
   Each rank rebuilds the same global adjacency independently, so an unsynchronised draw would
   give each rank a different graph and DDP would average gradients of different functions.
 
-**Recalibrate `knn_k` when enabling it.** At `B=64` per shard, `knn_k=8` wires each document to
-12.7% of candidates; at `B=256` the same 8 is only 3.1%, so the graph becomes relatively sparser.
-Use `knn_k ≈ 32` to hold density (the adaptive clamp `min(k, max(2, ⌊B/4⌋))` permits it). The
-`sem_sim_std` threshold improves for free — its mean/std are estimated over ~65k pairs instead
-of ~4k.
+**`knn_k` must be recalibrated with it, and the two settings are coupled.** Density is
+`k_eff/(B−1)` where `k_eff = min(knn_k, max(2, ⌊B/4⌋))`:
+
+| | `knn_k=8` | `knn_k=32` |
+|---|---|---|
+| per-shard, B=64 | k_eff 8 → **12.7%** | k_eff 16 (clamped by ⌊B/4⌋) → 25.4% |
+| global, B=256 | k_eff 8 → 3.1% | k_eff 32 → **12.5%** |
+
+`hyperalign.json` ships `global_graph: true` with `knn_k: 32`, which holds the original 12.7%
+density at the larger batch. Note `knn_k=32` in *per-shard* mode would be clamped to 16 by the
+⌊B/4⌋ term and double the density instead — so the two flags must be changed together, and
+`gram_base*.json` (stage A, no graph) are unaffected. `sem_sim_std` improves for free: its
+mean/std are estimated over ~65k pairs instead of ~4k.
 
 ### Ablation matrix
 
