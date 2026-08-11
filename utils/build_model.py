@@ -49,7 +49,34 @@ def build_model(args):
         missing_keys,unexpected_keys = model.load_state_dict(checkpoint,strict=False)
         LOGGER.info(f"Unexpected keys {unexpected_keys}")
         LOGGER.info(f"missing_keys  {missing_keys}")
-     
+
+        # strict=False is required -- stage B adds `hgnn` params that no stage-A or VAST
+        # checkpoint carries, and those SHOULD be missing. But it also silently tolerates a
+        # checkpoint whose keys are named differently from this model's, in which case almost
+        # nothing loads and the model evaluates from its random init. That failure is invisible:
+        # it produces a plausible-looking low score rather than an error. Fail loudly instead.
+        _total = len(model.state_dict())
+        _new = tuple(args.run_cfg.new_params_name or ())          # legitimately-missing prefixes
+        _unexplained = [k for k in missing_keys
+                        if not any(k.startswith(p) or f'.{p}.' in k or k.startswith(f'{p}.')
+                                   for p in _new)]
+        _loaded = _total - len(missing_keys)
+        LOGGER.info(f"checkpoint load: {_loaded}/{_total} tensors matched "
+                    f"({_loaded/max(1,_total)*100:.1f}%), {len(missing_keys)} missing "
+                    f"({len(_unexplained)} not explained by new_params_name={list(_new)}), "
+                    f"{len(unexpected_keys)} unexpected")
+        if _loaded < 0.5 * _total and not os.environ.get('GRAM_ALLOW_PARTIAL_CKPT'):
+            raise SystemExit(
+                f"Refusing to run: only {_loaded}/{_total} ({_loaded/max(1,_total)*100:.1f}%) of "
+                f"the model's tensors were found in the checkpoint. The checkpoint's key naming "
+                f"probably does not match this model_cfg. Evaluating anyway would score a mostly "
+                f"randomly-initialised model and look like a real result.\n"
+                f"  checkpoint : {args.run_cfg.checkpoint or args.run_cfg.pretrain_dir}\n"
+                f"  first missing    : {missing_keys[:5]}\n"
+                f"  first unexpected : {unexpected_keys[:5]}\n"
+                f"Set GRAM_ALLOW_PARTIAL_CKPT=1 to override if this is intentional.")
+
+
 
     local_rank = args.local_rank
     device = torch.device("cuda", local_rank)
