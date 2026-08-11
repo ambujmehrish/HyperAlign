@@ -21,11 +21,16 @@
 set -uo pipefail
 E2E=/leonardo/home/userexternal/amehrish/HyperAlign
 EVAL=$E2E/benchmark_eval
-CFG=$EVAL/configs
 # EVAL_RES_DIR lets one checkpoint's results live beside another's. Without it, evaluating a
 # second checkpoint silently OVERWRITES the first in eval_results/ and leaves a directory
 # that mixes checkpoints -- eval_summary.py then reports a table built from two models.
 RES=${EVAL_RES_DIR:-$EVAL/eval_results}
+# Configs must be per-run too, not just results: make_configs.py regenerates them with the
+# checkpoint baked in, so two concurrent evals sharing one config dir race and both end up
+# scoring the same checkpoint. Default path is unchanged when EVAL_RES_DIR is not set.
+if [ -n "${EVAL_RES_DIR:-}" ]; then CFG=${GRAM_CFG_DIR:-$RES/configs}; else CFG=${GRAM_CFG_DIR:-$EVAL/configs}; fi
+export GRAM_CFG_DIR="$CFG"
+mkdir -p "$CFG"
 mkdir -p "$RES" "$EVAL/logs"
 
 source "$E2E/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env

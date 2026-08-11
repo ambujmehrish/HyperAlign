@@ -19,13 +19,23 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 E2E  = os.path.dirname(HERE)                        # the HyperAlign folder (self-locating)
 sys.path.insert(0, HERE)
 from pick_ckpt import pick_ckpt                      # prefer best-val, fallback latest model_step
-OUT  = f'{HERE}/configs'
+# GRAM_CFG_DIR isolates the generated configs per run. Without it every concurrent eval writes
+# the SAME files here, so two jobs launched together race and both end up evaluating whichever
+# checkpoint wrote last -- silently, with identical results and no error.
+OUT  = os.environ.get('GRAM_CFG_DIR') or f'{HERE}/configs'
 os.makedirs(OUT, exist_ok=True)
 # our pretrained 4-model (best-val checkpoint, GRAM-style save_best)
 # workdir_v2full lives in the project WORK area (home quota too small for checkpoints)
 WORKD = os.environ.get('HA_WORK', '/leonardo_work/AIFAC_S07_041/HyperAlign')
-CKPT = os.environ.get('GRAM_CKPT') or pick_ckpt(f'{WORKD}/workdir_v2full/4model/ckpt', f'{WORKD}/workdir_v2full/4model/ckpt/PRETRAIN_FIRST.pt')
-print(f'  zero-shot init: {os.path.basename(CKPT)}'
+_env_ckpt = os.environ.get('GRAM_CKPT')
+if _env_ckpt is not None and not _env_ckpt.strip():
+    raise SystemExit("GRAM_CKPT is set but EMPTY -- the glob that built it matched nothing. "
+                     "Refusing to fall back to workdir_v2full, which would silently evaluate an "
+                     "unrelated checkpoint.")
+if _env_ckpt and not os.path.exists(_env_ckpt):
+    raise SystemExit(f"GRAM_CKPT does not exist: {_env_ckpt}")
+CKPT = _env_ckpt or pick_ckpt(f'{WORKD}/workdir_v2full/4model/ckpt', f'{WORKD}/workdir_v2full/4model/ckpt/PRETRAIN_FIRST.pt')
+print(f'  zero-shot init: {CKPT}'
       + ('' if os.path.exists(CKPT) else '  ⚠️ run pretrain first!'))
 
 # model_cfg MUST match the trained checkpoint architecture (stage B + hypergraph).
