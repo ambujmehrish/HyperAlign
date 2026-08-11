@@ -316,6 +316,30 @@ Two lines are logged every 50 steps on rank 0:
   selecting no better than chance, since edge *count* alone cannot distinguish a graph wiring
   genuine topic-mates from one wiring arbitrary pairs.
 
+### The recipe, read off GRAM's released checkpoint
+
+GRAM publishes its pretrained checkpoint, and the training directory recorded inside it names the
+recipe outright: `finetuneVolume256batchlossonlyvolume4Mod120k/ckpt/model_step_459.pt`. Batch 256,
+volume-only loss, 4 modalities, 120k samples — so `120000/256 = 468` steps, and the released
+checkpoint is step 459. **GRAM pretrains for one epoch.**
+
+This repo ran five, and the consequence is not just length. `utils/sched.py` parameterises the LR
+schedule by `num_train_steps`, so stretching the run stretches the decay:
+
+| | `num_train_steps` | LR at step 459 |
+|---|---|---|
+| GRAM | 468 | 2% of peak — annealed |
+| this repo, `epoch: 5` | 2649 | 92% of peak — mid-flight |
+
+Every checkpoint we compared against the paper was an un-annealed model that had seen a comparable
+number of samples. `epoch` is now `1`.
+
+The same arithmetic explains the "early peak" that several runs showed. Warmup ends at
+`warmup_ratio × num_train_steps = 0.1 × 2649 = 265`, and the first validation fired at
+`num_train_steps // valid_freq - 1 = 264`, because `warmup_ratio` and `1/valid_freq` were both
+0.1. The first measurement of every run landed exactly on peak learning rate. It was a config
+coincidence, not collapse, saturation, or over-training.
+
 ### Validation resolution
 
 `valid_freq` is a *count*, not an interval: `valid_steps = num_train_steps // valid_freq - 1`.

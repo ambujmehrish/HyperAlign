@@ -6,7 +6,7 @@
   "save_steps": 150,
   "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
   "save_best": true,
-  "valid_freq": 50,
+  "valid_freq": 20,
   "new_params_name": [
    "hgnn"
   ],
@@ -41,7 +41,7 @@
     "vision_sample_num": 2,
     "audio_sample_num": 1,
     "task": "ret%tv%ta",
-    "epoch": 5,
+    "epoch": 1,
     "n_workers": 8,
     "batch_size": 256
    }

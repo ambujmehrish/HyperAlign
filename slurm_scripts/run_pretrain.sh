@@ -11,8 +11,12 @@
 #SBATCH --job-name=pretrain
 #SBATCH -o /leonardo/home/userexternal/amehrish/HyperAlign/slurm_scripts/logs/train4_%j.out
 #SBATCH -e /leonardo/home/userexternal/amehrish/HyperAlign/slurm_scripts/logs/train4_%j.out
-# VAST-150k pretraining launcher — GRAM recipe (epoch5/bs128/lr2e-5/frames2) with hypergraph
+# VAST-150k pretraining launcher — GRAM recipe (epoch1/bs256/lr2e-5/frames2) with hypergraph
 # alignment (gate initialized to 1.0, signed refinement, w_doc 1.0).
+# The recipe is read off GRAM's own released checkpoint, whose training directory is named
+# `finetuneVolume256batchlossonlyvolume4Mod120k` and whose file is `model_step_459.pt`:
+# batch 256, volume-only loss, 4 modalities, 120k samples => 468 steps = ONE epoch. The earlier
+# "epoch5/bs128" in this header was a guess and both halves of it were wrong.
 # Writes to workdir_pretrain/4model. Resume only triggers off that directory, so a first run
 # always starts from the VAST pretrained weights.
 echo "START=$(date +%T) [HyperAlign pretrain, GRAM recipe + hypergraph -> ./workdir_pretrain/4model]"
