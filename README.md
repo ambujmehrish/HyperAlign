@@ -282,6 +282,15 @@ export GRAM_CKPT=$HA_WORK/workdir_pretrain/4model/ckpt/best_*.pt
 sbatch benchmark_eval/eval_zeroshot.sh          # 12 benchmark/mode configs + summary table
 sbatch benchmark_eval/eval_finetune.sh msrvtt
 
+# the control: zero-shot score of the VAST checkpoint we initialise FROM, before any of our
+# training. Every "we gained +X over the baseline" claim is measured against this number, so it
+# has to be measured, not assumed. GRAM_TRAIN_CFG points model_cfg at stage A because the VAST
+# checkpoint carries no `hgnn` weights.
+EVAL_RES_DIR=$HA_WORK/eval_results_vastinit \
+GRAM_CKPT=$HA_WORK/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt \
+GRAM_TRAIN_CFG=config/gram/pretrain_cfg/gram_base.json \
+  sbatch benchmark_eval/eval_zeroshot.sh
+
 # missing-modality robustness: drop a modality from a growing share of gallery clips,
 # with the masked volume ON and OFF, on identical inputs
 sbatch benchmark_eval/eval_missing_modality.sh msrvtt_tva a
@@ -306,6 +315,17 @@ Two lines are logged every 50 steps on rank 0:
   the batch mean, in batch std units) is the quality signal: near 0 means the semantic wiring is
   selecting no better than chance, since edge *count* alone cannot distinguish a graph wiring
   genuine topic-mates from one wiring arbitrary pairs.
+
+### Validation resolution
+
+`valid_freq` is a *count*, not an interval: `valid_steps = num_train_steps // valid_freq - 1`.
+At the original `valid_freq: 10` a 2,649-step run validated only ten times, the first at step
+263. With 530 steps to one pass over the 135.7k clips actually on disk, that is two measurements
+per epoch — and three of the four runs recorded their best score at the *very first* one. A peak
+at the first sample is not evidence of a peak; it is the absence of any earlier sample. It is
+equally consistent with the model having peaked at step 30, or with it never having improved on
+its initialisation at all. `valid_freq` is now `50` (validate every ~52 steps, ten points inside
+the first epoch), which also gives `save_best` a real chance of catching the maximum.
 
 ## 7. Known gaps
 

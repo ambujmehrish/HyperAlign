@@ -38,8 +38,17 @@ CKPT = _env_ckpt or pick_ckpt(f'{WORKD}/workdir_v2full/4model/ckpt', f'{WORKD}/w
 print(f'  zero-shot init: {CKPT}'
       + ('' if os.path.exists(CKPT) else '  ⚠️ run pretrain first!'))
 
-# model_cfg MUST match the trained checkpoint architecture (stage B + hypergraph).
-train_cfg = json.load(open(f'{E2E}/config/gram/pretrain_cfg/hyperalign.json'))
+# model_cfg MUST match the trained checkpoint architecture. Default is stage B (hypergraph),
+# but a stage-A checkpoint -- gram_base, or the VAST init we start from -- carries no hgnn
+# weights, so evaluating it needs gram_base.json instead:
+#   GRAM_TRAIN_CFG=config/gram/pretrain_cfg/gram_base.json
+_tcfg = os.environ.get('GRAM_TRAIN_CFG') or f'{E2E}/config/gram/pretrain_cfg/hyperalign.json'
+if not os.path.isabs(_tcfg):
+    _tcfg = f'{E2E}/{_tcfg}'
+if not os.path.exists(_tcfg):
+    raise SystemExit(f"GRAM_TRAIN_CFG does not exist: {_tcfg}")
+print(f'  model_cfg from: {_tcfg}')
+train_cfg = json.load(open(_tcfg))
 model_cfg = dict(train_cfg['model_cfg'])
 model_cfg['default'] = f'{E2E}/config/gram/default_model_cfg.json'
 model_cfg['ret_bidirection_evaluation'] = True     # need V2T too (Table 9)

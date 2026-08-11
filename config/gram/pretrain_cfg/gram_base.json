@@ -6,7 +6,7 @@
   "save_steps": 150,
   "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
   "save_best": true,
-  "valid_freq": 10,
+  "valid_freq": 50,
   "keep_last_n_ckpt": 5
  },
  "model_cfg": {
