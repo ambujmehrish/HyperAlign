@@ -25,10 +25,20 @@ SEC_RE = re.compile(r'evaluation--[^-]*--\w+?_(' + '|'.join(SECTIONS) + r')[=\s]
 def parse(path):
     """-> {section: [(step, value), ...]} in log order."""
     out = {s: [] for s in SECTIONS}
+    seen = {s: set() for s in SECTIONS}
     step, sec = None, None
     for line in open(path, errors='ignore'):
         m = SEC_RE.search(line)
         if m:
+            # The log emits TWO banners per validation: the current "step N" result, and a
+            # "history best step: N" recap that repeats the best-so-far. Only the first is a
+            # point on the curve. Dropping the recap by "same step as the previous row" fails
+            # as soon as the best is not the most recent step -- the two then alternate
+            # (524, 124, 549, 124, ...) and every recap survives, which corrupts pts[-1] and
+            # with it every "% of run" figure and the peaked-early warning.
+            if 'history' in line.lower():
+                sec = None
+                continue
             sec = m.group(1)
             s = STEP_RE.search(line.split(sec, 1)[1])
             if s:
@@ -44,9 +54,8 @@ def parse(path):
                 continue
             key = SECTIONS[sec]
             if isinstance(vals, dict) and key in vals:
-                # the log emits both a "step N" banner and a "history best step: N" banner for the
-                # same validation, each followed by the same dict -- keep one row per step
-                if not out[sec] or out[sec][-1][0] != step:
+                if step not in seen[sec]:          # belt and braces: one row per step
+                    seen[sec].add(step)
                     out[sec].append((step, float(vals[key])))
                 sec = None
     return out
