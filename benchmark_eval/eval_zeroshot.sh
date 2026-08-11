@@ -22,7 +22,10 @@ set -uo pipefail
 E2E=/leonardo/home/userexternal/amehrish/HyperAlign
 EVAL=$E2E/benchmark_eval
 CFG=$EVAL/configs
-RES=$EVAL/eval_results
+# EVAL_RES_DIR lets one checkpoint's results live beside another's. Without it, evaluating a
+# second checkpoint silently OVERWRITES the first in eval_results/ and leaves a directory
+# that mixes checkpoints -- eval_summary.py then reports a table built from two models.
+RES=${EVAL_RES_DIR:-$EVAL/eval_results}
 mkdir -p "$RES" "$EVAL/logs"
 
 source "$E2E/slurm_scripts/env.sh" || exit 1   # conda + WANDB/GRAM env
@@ -47,5 +50,5 @@ for cfg in "$CFG"/zs_*.json; do
 done
 
 echo "===================== SUMMARY ====================="
-python3 "$EVAL/eval_summary.py" 2>&1 | tee "$RES/RESULTS_zeroshot.txt"
+EVAL_RES_DIR="$RES" python3 "$EVAL/eval_summary.py" 2>&1 | tee "$RES/RESULTS_zeroshot.txt"
 echo "DONE $(date +%T)"
