@@ -450,7 +450,26 @@ class GRAM(MMGeneralModule):
         return slice_scores
 
 
-    def _hg_refine(self, feats, t_frozen=None, use_semantic=False):
+    @staticmethod
+    def _presence(feats, order, has_audio=None):
+        """(B, L) per-clip modality presence for gallery tensors `feats`, ordered by `order`.
+
+        The norm test is the fallback: a zero feature means the modality is absent. It CANNOT see a
+        naturally missing audio track, though -- a missing .wav gives a zero SPECTROGRAM, and BEaTs
+        applies LayerNorm, whose output for a constant input is its bias beta, so the encoder emits
+        a fixed non-zero vector and the L2-normed feature has norm 1 like any other. `has_audio` is
+        what the loader actually observed (data/IndexAnno.py) and overrides the audio column when
+        supplied. Shapes are checked rather than assumed: a mismatch would silently mark the wrong
+        clips absent, which is worse than falling back to the norm test.
+        """
+        p = torch.stack([(f.float().norm(dim=-1) > 0.5).float() for f in feats], dim=1)
+        if has_audio is not None and 'A' in order:
+            ha = has_audio.reshape(-1).to(p.device)
+            if ha.shape[0] == p.shape[0]:
+                p[:, list(order).index('A')] = ha.to(p.dtype)
+        return p
+
+    def _hg_refine(self, feats, t_frozen=None, use_semantic=False, has_audio=None):
 
         from .hypergraph import doc_incidence, mutual_knn_adj, semantic_incidence
         mask = tuple(m for m in ('V', 'A', 'S', 'D') if m in feats)
@@ -469,11 +488,13 @@ class GRAM(MMGeneralModule):
             if t_frozen is not None:
                 # topology only, and mutual_knn_adj detaches anyway -> a no-grad gather is correct
                 t_frozen = concat_all_gather(t_frozen)
+        if go_global and has_audio is not None:
+            has_audio = concat_all_gather(has_audio.reshape(-1))   # align with the gathered feats
         B = feats[mask[0]].shape[0]
-        # per-clip modality presence (a zero-filled feature = modality absent for that clip). A missing
-        # modality is masked out of the doc edge (no messages) and the fusion mean (no dilution), so the
-        # graph's relation-building is unaffected by absent modalities. All-present -> ones -> unchanged.
-        pres = torch.stack([(feats[m].float().norm(dim=-1) > 0.5).float() for m in mask], dim=1)  # (B, k1)
+        # per-clip modality presence. A missing modality is masked out of the doc edge (no messages)
+        # and the fusion mean (no dilution), so the graph's relation-building is unaffected by absent
+        # modalities. All-present -> ones -> unchanged.
+        pres = self._presence([feats[m] for m in mask], mask, has_audio)   # (B, k1)
         H_doc = doc_incidence(B, mask, device, present=pres).float()
         H_sem = None
         if use_semantic and self.training and self.semantic_edges and t_frozen is not None:
@@ -553,6 +574,15 @@ class GRAM(MMGeneralModule):
             # refined-only behaviour.
             hg_h = hg_h_prenorm = None
             _raw = None
+            # Loader-reported audio presence (data/IndexAnno.py). Absent from older configs and
+            # from datasets with no audio -> None -> every presence test falls back to the norm.
+            _ha = batch['has_audio'] if 'has_audio' in batch else None
+            # gallery modality order, mirroring how _g/_gT are built below
+            _ord = ['V', 'A']
+            if "raw_subtitles" in batch.keys():
+                _ord.append('S')
+                if "depth_pixels" in batch.keys():
+                    _ord.append('D')
             if self.stage == 'B':
                 # LEAK-FREE: refine ONLY non-text (gallery) modalities; feat_t stays the raw anchor.
                 _f = {'V': feat_v, 'A': feat_a}
@@ -560,7 +590,8 @@ class GRAM(MMGeneralModule):
                 if "depth_pixels" in batch.keys():  _f['D'] = feat_d
                 if self.w_raw > 0:
                     _raw = dict(_f)          # pre-refinement copies, for the raw-path loss
-                z_hat, hg_h, hg_h_prenorm = self._hg_refine(_f, t_frozen=feat_t, use_semantic=True)
+                z_hat, hg_h, hg_h_prenorm = self._hg_refine(_f, t_frozen=feat_t, use_semantic=True,
+                                                            has_audio=_ha)
                 self._gc=getattr(self,"_gc",0)+1
                 if self._gc%50==1 and dist.get_rank()==0: print(f"[GATE] step~{self._gc}: {self.hgnn.gates.detach().float().tolist()}",flush=True)
                 feat_v, feat_a = z_hat['V'], z_hat['A']        # feat_t UNCHANGED (raw)
@@ -596,7 +627,16 @@ class GRAM(MMGeneralModule):
                     _g = [feat_v_all,feat_a_all,feat_s_all]
             else:
                 _g = [feat_v_all,feat_a_all]
-            volume = volume_computation_masked(feat_t, _g, present=present_from_feats(_g) if self.masked_volume else None)
+            _ha_all = concat_all_gather(_ha.reshape(-1)) if _ha is not None else None
+            # Verify the loader flag is actually arriving: without it the audio column falls back to
+            # a norm test that can never be 0 (BEaTs' LayerNorm bias), so the mask silently no-ops.
+            if self._gc_edges % 50 == 1 and (not dist.is_initialized() or dist.get_rank() == 0):
+                _na = int((_ha_all < 0.5).sum().item()) if _ha_all is not None else -1
+                print(f"[PRESENCE] loader has_audio={'yes' if _ha is not None else 'NO -> norm fallback'}"
+                      f"  audio_absent={_na}/{0 if _ha_all is None else _ha_all.shape[0]}"
+                      f"  masked_volume={self.masked_volume}", flush=True)
+            volume = volume_computation_masked(
+                feat_t, _g, present=self._presence(_g, _ord, _ha_all) if self.masked_volume else None)
             volume = volume / self.contra_temp
             #AreaT (Video,batch_all)
             if "raw_subtitles" in batch.keys():
@@ -606,7 +646,8 @@ class GRAM(MMGeneralModule):
                     _gT = [feat_v,feat_a,feat_s]
             else:
                 _gT = [feat_v,feat_a]
-            volumeT = volume_computation_masked(feat_t_all, _gT, present=present_from_feats(_gT) if self.masked_volume else None).T
+            volumeT = volume_computation_masked(
+                feat_t_all, _gT, present=self._presence(_gT, _ord, _ha) if self.masked_volume else None).T
             volumeT = volumeT / self.contra_temp
             rank = dist.get_rank()
             bs = feat_t.size(0)
@@ -629,10 +670,10 @@ class GRAM(MMGeneralModule):
                 _rl = [_raw[m] for m in ('V', 'A', 'S', 'D') if m in _raw]     # local
                 _ra = [concat_all_gather(x) for x in _rl]                      # gathered
                 _vol_r = volume_computation_masked(
-                    feat_t, _ra, present=present_from_feats(_ra) if self.masked_volume else None
+                    feat_t, _ra, present=self._presence(_ra, _ord, _ha_all) if self.masked_volume else None
                 ) / self.contra_temp
                 _vol_rT = volume_computation_masked(
-                    feat_t_all, _rl, present=present_from_feats(_rl) if self.masked_volume else None
+                    feat_t_all, _rl, present=self._presence(_rl, _ord, _ha) if self.masked_volume else None
                 ).T / self.contra_temp
                 loss_dict['loss_area_raw'] = self.w_raw * (
                     F.cross_entropy(-_vol_r, targets, label_smoothing=0.1)
