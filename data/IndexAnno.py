@@ -130,6 +130,7 @@ class AnnoIndexedDataset(Dataset):
         id_txt = None
         vision_pixels = None
         audio_spectrograms = None 
+        has_audio = None          # (see the audio branch below) float 1.0/0.0 when audio is configured
         vision_cap = None
         audio_cap = None
  
@@ -208,7 +209,12 @@ class AnnoIndexedDataset(Dataset):
                         return self.__getitem__(resample_idx)
                         # raise ValueError
 
-        if  self.audio_mapper:   
+        if  self.audio_mapper:
+            # Presence must be recorded HERE: read() zero-fills a missing file, but a zero
+            # spectrogram does not survive the encoder as a zero embedding (BEaTs LayerNorm emits
+            # its bias), so downstream norm-thresholding cannot tell the two apart. 0-dim float
+            # tensor so annoindexedcollate stacks it into (B,) with no special casing.
+            has_audio = torch.tensor(1.0 if self.audio_mapper.exists(id_) else 0.0)
             audio_spectrograms = self.audio_mapper.read(id_)
             if audio_spectrograms is None: ### wrong audio, resample when training and raise error when testing
                 if self.training:
@@ -219,7 +225,7 @@ class AnnoIndexedDataset(Dataset):
                     raise ValueError                
         #print(raw_captions)
         return id_, raw_captions, vision_pixels, id_txt, question, answer, question_id, \
-        audio_spectrograms, raw_subtitles, vision_cap, audio_cap, depth_pixels
+        audio_spectrograms, raw_subtitles, vision_cap, audio_cap, depth_pixels, has_audio
 
 
 
@@ -238,7 +244,8 @@ def annoindexedcollate(inputs):
             'raw_subtitles',
             'vision_captions',
             'audio_captions',
-            "depth_pixels"
+            "depth_pixels",
+            "has_audio",
             ]
 
     for key, data in zip(keys, all_data):

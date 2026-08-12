@@ -181,6 +181,12 @@ def evaluate_ret(model, tasks, val_loader, global_step):
     store_dict = {}
     feat_t = []
     feat_a = []
+    # Loader-reported audio presence, accumulated exactly like the features. Needed because it
+    # CANNOT be recovered from the embedding: a missing .wav yields a zero spectrogram, but BEaTs'
+    # LayerNorm turns a constant input into its bias, so the encoder emits a fixed non-zero vector
+    # whose L2-normed feature has norm 1 like any other. Thresholding norms therefore marks every
+    # clip present, and the masked volume never fires on naturally missing audio.
+    has_audio = []
     feat_v = []
     feat_s = []
     feat_d = []
@@ -196,6 +202,8 @@ def evaluate_ret(model, tasks, val_loader, global_step):
 
         feat_t.append(evaluation_dict['feat_t'])
         feat_a.append(evaluation_dict['feat_a'])
+        if 'has_audio' in batch:
+            has_audio.append(batch['has_audio'].reshape(-1))
         if 'feat_v' in evaluation_dict.keys():      # audio-only (AudioCaps T-A): no video
             feat_v.append(evaluation_dict['feat_v'])
         if 'feat_s' in evaluation_dict.keys():
@@ -301,10 +309,26 @@ def evaluate_ret(model, tasks, val_loader, global_step):
         # it exists so the masking can be ablated separately from the hypergraph.
         _present = torch.stack([(f.norm(dim=-1) > 0.5).float() for f in _feats], dim=1) \
             if getattr(model.config, 'masked_volume', True) else None
+        # Norm-thresholding cannot see a NATURALLY missing modality (see the has_audio comment at
+        # the top of this function), so override the audio column with what the loader reported.
+        # Without this, masked_volume=True and =False give byte-identical scores on data with real
+        # gaps -- measured on activitynet_tva, where 232/4917 clips have no .wav.
+        _n_absent = 0
+        if _present is not None and 'a' in _mods and has_audio:
+            _ha = ddp_allgather(torch.cat(has_audio, dim=0).to(_present.device))
+            _order = [m for m in 'vasd' if m in _mods]   # same order _feats was built in
+            _j = _order.index('a')
+            if _ha.shape[0] == _present.shape[0]:
+                _present[:, _j] = _ha.to(_present.dtype)
+                _n_absent = int((_ha < 0.5).sum().item())
+            else:
+                LOGGER.info(f"[VOLUME] has_audio length {_ha.shape[0]} != gallery {_present.shape[0]}"
+                            f" -- NOT applying loader presence (would misalign clips)")
         area = volume_computation_masked(feat_t, _feats, present=_present)
         LOGGER.info(f"[VOLUME] task={_task} -> volume over T+"
                     f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal"
                     f"  masked_volume={getattr(model.config, 'masked_volume', True)}"
+                    f"  audio_absent(loader)={_n_absent}"
                     + (f"  drop={_drop_info['mod']}@{_drop_info['rate']}"
                        f"({_drop_info['n_dropped']}/{_drop_info['n_clips']})" if _drop_info else "  drop=none"))
         

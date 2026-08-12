@@ -28,19 +28,51 @@ class AudioMapper(object):
        
 
 
+    def _resolve(self, id_):
+        """-> path to this clip's audio, or None if no candidate exists on disk.
+
+        Single source of truth for the extension-fallback chain so that exists() and read() can
+        never disagree. Mirrors the original chain EXACTLY, including its quirk: `.replace` acts on
+        the whole path, not just the extension, so a directory named e.g. `audios_wav` becomes
+        `audios_mp3` / `audios_mkv` / `audios_mp4`. That is almost certainly not what was intended
+        (the .mp4 fallback for VAST-150k looks in `audios_mp4/`, not next to the clips), but it is
+        preserved verbatim here: changing which files training loads is a separate decision from
+        being able to report whether a file was found.
+        """
+        p = os.path.join(self.audio_dir, id_)
+        if os.path.exists(p):
+            return p
+        p = os.path.join(self.audio_dir, id_ + '.wav')
+        if os.path.exists(p):
+            return p
+        p = p.replace('wav', 'mp3')
+        if os.path.exists(p):
+            return p
+        p = p.replace('mp3', 'mkv')
+        if os.path.exists(p):
+            return p
+        p = p.replace('mkv', 'mp4')
+        if os.path.exists(p):
+            return p
+        return None
+
+    def exists(self, id_):
+        """Whether this clip has audio on disk, WITHOUT decoding it.
+
+        Presence has to be reported by the loader, because it cannot be recovered downstream. When
+        audio is missing, read() returns a zero spectrogram -- but a zero spectrogram is not a zero
+        embedding: BEaTs applies LayerNorm, and LN of a constant input is its bias beta, so the
+        encoder emits a fixed NON-zero vector and the L2-normed feature has norm 1 exactly like a
+        real one. utils.volume.present_from_feats thresholds that norm, so it marks every clip
+        present and the masked volume never fires on naturally missing audio (measured: ActivityNet
+        has 232/4917 clips with no .wav, and masked_volume True vs False gave identical scores).
+        """
+        return self._resolve(id_) is not None
+
     def read(self, id_):
 
-        wav_file = os.path.join(self.audio_dir, id_)
-        
-        if not os.path.exists(wav_file):
-            wav_file = os.path.join(self.audio_dir, id_+'.wav')
-        if not os.path.exists(wav_file):
-            wav_file = wav_file.replace('wav','mp3')
-        if not os.path.exists(wav_file):
-            wav_file = wav_file.replace('mp3','mkv')
-        if not os.path.exists(wav_file):
-            wav_file = wav_file.replace('mkv','mp4')   # our VAST-150k clips: audio embedded in the .mp4
-        if not os.path.exists(wav_file):
+        wav_file = self._resolve(id_)
+        if wav_file is None:
             print('not have audios', id_)
             return torch.zeros(self.sample_num, self.target_length, self.melbins)
         try:
