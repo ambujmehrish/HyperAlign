@@ -324,6 +324,24 @@ def evaluate_ret(model, tasks, val_loader, global_step):
             else:
                 LOGGER.info(f"[VOLUME] has_audio length {_ha.shape[0]} != gallery {_present.shape[0]}"
                             f" -- NOT applying loader presence (would misalign clips)")
+        # ---- INFERENCE-TIME HYPERGRAPH (infer_graph) --------------------------------------
+        # Refine the gallery with the hypergraph before scoring. Legal only because the edges are
+        # wired from a query-free descriptor (GRAM._fusion_src): text is neither refined nor used
+        # to build edges, so no query information enters the gallery. This is transductive -- one
+        # graph over the WHOLE gallery (1k-5k clips, vs 256 in training) -- and must be disclosed
+        # as such, like QB-Norm / dual-softmax / inverted-softmax.
+        _graph_on = False
+        if getattr(model.config, 'infer_graph', False) and getattr(model, 'hgnn', None) is not None:
+            _up = [m.upper() for m in 'vasd' if m in _mods]
+            try:
+                _feats = model.refine_gallery(_feats, _up, _present)
+                _graph_on = True
+            except Exception as _e:
+                LOGGER.info(f"[GRAPH] refine_gallery FAILED ({type(_e).__name__}: {_e}) "
+                            f"-- scoring RAW features, so this run is NOT the graph condition")
+        LOGGER.info(f"[GRAPH] inference refinement: {'ON' if _graph_on else 'off'}"
+                    f"  sem_edge_src={getattr(model.config, 'sem_edge_src', 'caption')}"
+                    f"  k={getattr(model.config, 'knn_k', None)}  N={_feats[0].shape[0]}")
         area = volume_computation_masked(feat_t, _feats, present=_present)
         LOGGER.info(f"[VOLUME] task={_task} -> volume over T+"
                     f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal"

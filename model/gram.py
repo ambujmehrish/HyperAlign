@@ -61,6 +61,15 @@ class GRAM(MMGeneralModule):
         # loss is already global (local queries vs gathered gallery); this makes the GRAPH global
         # too, so a document's neighbours are drawn from world_size x more candidates.
         self.global_graph = bool(getattr(self.config, 'global_graph', False))
+        # WHERE semantic edges get their similarity from.
+        #   'caption' : caption kNN. Cannot be used at inference -- the captions are the queries, so
+        #               wiring the gallery graph with them leaks the query. Hence training-only.
+        #   'fusion'  : the clip's own fused modality descriptor (see _fusion_src). Query-free, so
+        #               the SAME graph can be built at train and at test time.
+        self.sem_edge_src = str(getattr(self.config, 'sem_edge_src', 'caption'))
+        # Apply the hypergraph at INFERENCE, over the whole gallery. Requires sem_edge_src='fusion'
+        # for the semantic half to be legal; doc edges alone are always legal.
+        self.infer_graph = bool(getattr(self.config, 'infer_graph', False))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -451,6 +460,59 @@ class GRAM(MMGeneralModule):
 
 
     @staticmethod
+    def _fusion_src(z, mask, present=None):
+        """Query-independent per-clip descriptor used to WIRE semantic edges.
+
+        Mean of the clip's present modalities, L2-normed, detached. It contains no text, which is
+        the whole point: semantic edges built from captions cannot be used at inference, because
+        the captions ARE the queries and wiring the gallery graph with them leaks the query into
+        the gallery representation. That is why the caption-based edges are gated behind
+        self.training -- and it is why the graph's only novel component (inter-document structure)
+        was structurally unavailable at test time, leaving only the doc hyperedge, which largely
+        duplicates the cross-modal coupling the Gramian volume already performs.
+
+        Wiring from the gallery side instead makes the edges legal at inference. It is transductive
+        -- the graph sees the whole gallery at once -- which is standard and disclosed in video
+        retrieval (QB-Norm, dual softmax, inverted softmax all use gallery-side test-time
+        structure), but it never sees a query.
+        """
+        st = torch.stack([z[m].float() for m in mask], dim=1)              # (B, k1, D)
+        if present is None:
+            s = st.mean(dim=1)
+        else:
+            w = present.unsqueeze(-1).float()
+            s = (st * w).sum(1) / w.sum(1).clamp(min=1.0)
+        return F.normalize(s, dim=-1).detach()
+
+    @torch.no_grad()
+    def refine_gallery(self, feats_list, order, present=None):
+        """Apply the hypergraph to a WHOLE gallery at inference. Returns refined tensors.
+
+        Unlike the training path this runs on the full gallery in one graph (1k-5k clips) rather
+        than a 256-document batch, so the semantic neighbourhood is drawn from far more candidates.
+        Text is neither refined nor used to build edges, so queries stay out of it entirely.
+        """
+        from .hypergraph import doc_incidence, mutual_knn_adj, semantic_incidence
+        mask = tuple(order)
+        z = {m: f for m, f in zip(mask, feats_list)}
+        B = feats_list[0].shape[0]
+        device = feats_list[0].device
+        if present is None:
+            present = self._presence(feats_list, mask)
+        present = present.float().to(device)
+        H_doc = doc_incidence(B, mask, device, present=present).float()
+        H_sem = None
+        if self.semantic_edges:
+            src = self._fusion_src(z, mask, present)
+            adj = mutual_knn_adj(src, k=self.knn_k, edge_dropout=0.0, training=False,
+                                 sim_std=self.sem_sim_std, weighted=self.sem_edge_weighted)
+            H_sem = semantic_incidence(adj, B, mask, device,
+                                       present=present if self.sem_edge_presence_mask else None)
+        z32 = {m: z[m].float() for m in mask}
+        z_hat, _h, _hp = self.hgnn(z32, mask, H_doc, H_sem, present=present)
+        return [z_hat[m].to(feats_list[i].dtype) for i, m in enumerate(mask)]
+
+    @staticmethod
     def _presence(feats, order, has_audio=None):
         """(B, L) per-clip modality presence for gallery tensors `feats`, ordered by `order`.
 
@@ -497,7 +559,13 @@ class GRAM(MMGeneralModule):
         pres = self._presence([feats[m] for m in mask], mask, has_audio)   # (B, k1)
         H_doc = doc_incidence(B, mask, device, present=pres).float()
         H_sem = None
-        if use_semantic and self.training and self.semantic_edges and t_frozen is not None:
+        # Edge source: captions (training-only, leaks at inference) or the query-free gallery
+        # fusion (legal everywhere). With 'fusion' the graph is IDENTICAL at train and test time,
+        # which is what makes refine_gallery a faithful deployment of what was trained.
+        if self.sem_edge_src == 'fusion':
+            t_frozen = self._fusion_src({m: feats[m] for m in mask}, mask, pres)
+        if use_semantic and self.semantic_edges and t_frozen is not None \
+                and (self.training or self.sem_edge_src == 'fusion'):
             _stats = {} if (self._gc_edges % 50 == 1 and dist.get_rank() == 0) else None
             adj = mutual_knn_adj(t_frozen.detach(), k=self.knn_k,
                                  edge_dropout=self.edge_dropout, training=True,
