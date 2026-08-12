@@ -45,6 +45,14 @@ class GRAM(MMGeneralModule):
         # the original behaviour (refined features carry the ONLY retrieval loss), which leaves the
         # deployed representation trained only indirectly. See forward_ret for the full argument.
         self.w_raw  = float(getattr(self.config, 'w_raw', 0.0))
+        # Distil the REFINED embedding into the raw one: the encoder learns to produce, from a clip
+        # ALONE, what the graph produced using that clip's neighbours. This is what makes the method
+        # inductive -- neighbourhood knowledge ends up in the weights, so inference needs no graph,
+        # no gallery and no extra compute, and the deployed model generalises the way GRAM's does.
+        # w_raw alone does NOT do this: it only asserts "the raw features must also retrieve well",
+        # a one-scalar-per-clip constraint that never tells the encoder WHAT the graph contributed.
+        # Distillation gives a full target vector per clip per modality instead.
+        self.w_distill = float(getattr(self.config, 'w_distill', 0.0))
         self.semantic_edges = bool(getattr(self.config, 'semantic_edges', False))
         # Per-clip missing-modality masking in the Gramian volume. This is INDEPENDENT of the
         # hypergraph (it applies in stage A too, and at inference where the graph is off), so it
@@ -656,8 +664,8 @@ class GRAM(MMGeneralModule):
                 _f = {'V': feat_v, 'A': feat_a}
                 if "raw_subtitles" in batch.keys(): _f['S'] = feat_s
                 if "depth_pixels" in batch.keys():  _f['D'] = feat_d
-                if self.w_raw > 0:
-                    _raw = dict(_f)          # pre-refinement copies, for the raw-path loss
+                if self.w_raw > 0 or self.w_distill > 0:
+                    _raw = dict(_f)      # pre-refinement copies: raw-path loss and/or distillation target
                 z_hat, hg_h, hg_h_prenorm = self._hg_refine(_f, t_frozen=feat_t, use_semantic=True,
                                                             has_audio=_ha)
                 self._gc=getattr(self,"_gc",0)+1
@@ -734,7 +742,7 @@ class GRAM(MMGeneralModule):
             # the deployed representation is optimised only indirectly. Same targets, same temp,
             # same masking, same modality order as the refined path -- the only difference is which
             # tensors go in.
-            if _raw is not None:
+            if _raw is not None and self.w_raw > 0:
                 _rl = [_raw[m] for m in ('V', 'A', 'S', 'D') if m in _raw]     # local
                 _ra = [concat_all_gather(x) for x in _rl]                      # gathered
                 _vol_r = volume_computation_masked(
@@ -747,6 +755,19 @@ class GRAM(MMGeneralModule):
                     F.cross_entropy(-_vol_r, targets, label_smoothing=0.1)
                     + F.cross_entropy(-_vol_rT, targets, label_smoothing=0.1)
                 ) / 2
+
+            # ---- distillation: pull the raw embedding toward the refined one ------------------
+            # stop-grad on the target, so the graph is a TEACHER: gradients shape the encoder to
+            # imitate the refined vector, rather than letting the graph drift toward whatever the
+            # encoder already produces (which would make the objective trivially satisfiable).
+            # Both sides are already L2-normed, so cosine is a dot product; 1-cos in [0, 2].
+            if _raw is not None and self.w_distill > 0:
+                _dk = [m for m in ('V', 'A', 'S', 'D') if m in _raw and m in z_hat]
+                if _dk:
+                    _d = sum((1.0 - (F.normalize(_raw[m].float(), dim=-1)
+                                     * F.normalize(z_hat[m].detach().float(), dim=-1)).sum(-1)).mean()
+                             for m in _dk) / len(_dk)
+                    loss_dict['loss_distill'] = self.w_distill * _d
 
             # hypergraph auxiliaries (loss_area above is the graph's retrieval loss)
             if self.stage == 'B':

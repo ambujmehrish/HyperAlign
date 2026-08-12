@@ -27,7 +27,10 @@
   "global_graph": true,
   "masked_volume": true,
   "w_raw": 1.0,
-  "gate_init": 0.1
+  "gate_init": 0.1,
+  "w_distill": 1.0,
+  "sem_edge_src": "caption",
+  "infer_graph": false
  },
  "data_cfg": {
   "train": [
