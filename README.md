@@ -260,12 +260,29 @@ mean/std are estimated over ~65k pairs instead of ~4k.
 | `gram_base_maskedvol.json` | A | true | the masked volume alone |
 | `hyperalign.json` | B | true | the full model |
 
-`gram_base_maskedvol` produces numbers **byte-identical** to `gram_base` on real data: `data/`
-resamples a clip that is missing a modality rather than zero-filling it, so no zero rows ever
-reach `volume_computation_masked` and the mask never fires. The masked volume is therefore only
-measurable through the synthetic harness (`HA_DROP_MOD`, see §5), where it is the difference
-between 99–101% retention at any drop rate and collapse to ~4%. Do not report it as a pretraining
-ablation on this data.
+**The masked volume is not yet measured on real data.** `gram_base_maskedvol` matched `gram_base`
+on the training-time validation metric — but that metric is MSR-VTT only, and MSR-VTT has 100%
+audio coverage, so no zero rows ever reach `volume_computation_masked` there and the mask cannot
+fire. That agreement is therefore uninformative, not evidence of a no-op. No zero-shot eval of
+`gram_base_maskedvol` has been run.
+
+Where it *should* be measurable: `data/audio_mapper.py` returns `torch.zeros(...)` when it finds no
+audio file, so audio genuinely is zero-filled, and ActivityNet is missing `.wav` for 232 of its
+4917 test clips (4.7%). Masked and unmasked volumes must differ on `activitynet_tva`. Coverage by
+benchmark:
+
+| benchmark | annotated | has video | + has audio |
+|---|---|---|---|
+| msrvtt | 1000 | 1000 | 1000 |
+| didemo | 1003 | 1003 | 1003 |
+| activitynet | 4917 | 4917 | **4685** |
+| vatex | 1500 | 1358 | 1358 |
+
+So the ablation to run is a zero-shot eval of both stage-A configs on ActivityNet, checking the
+`[VOLUME]` log line reports `masked_volume=` as expected in each. Until then the masked volume is
+supported only by the synthetic harness (`HA_DROP_MOD`, §5) — 99–101% retention at any drop rate
+versus collapse to ~4% — which is a real result but on injected rather than naturally missing
+modalities.
 
 ---
 
