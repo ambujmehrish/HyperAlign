@@ -43,6 +43,16 @@ def main():
         from evaluation.evaluation_classification import evaluate_mm as evaluate_classification
         evaluation.evaluation_registry['evaluation_mm'] = evaluate_classification
         print("VGGSound classification mode: swapped in evaluation_classification.evaluate_mm")
+    elif os.environ.get('GRAM_UPSTREAM_EVAL'):
+        # Score with GRAM's own evaluation file, verbatim, instead of ours. The difference that
+        # matters: upstream builds the volume from every modality the loader supplied and ignores
+        # the task string, so its tv/tva/tvas rows share one volume; ours builds the arity the task
+        # names. Use this to separate "our model is worse" from "our metric is different" -- run
+        # GRAM's released checkpoint both ways and compare against their published table.
+        # Not valid for AudioCaps (no video): upstream indexes feat_v unconditionally.
+        from evaluation.evaluation_mm_gram import evaluate_mm as evaluate_upstream
+        evaluation.evaluation_registry['evaluation_mm'] = evaluate_upstream
+        print("GRAM_UPSTREAM_EVAL=1: scoring with GRAM's unmodified evaluation_mm.py")
 
     model, _, _ = build_model(args)
     val_loaders = create_val_dataloaders(args)
