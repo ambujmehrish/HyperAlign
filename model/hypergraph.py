@@ -110,13 +110,23 @@ class GatedHGNN(nn.Module):
         F_V <- F_V + tanh(gate_l) * F_Vn
     """
 
-    def __init__(self, k=512, n_layers=2):
+    def __init__(self, k=512, n_layers=2, gate_init=1.0):
         super().__init__()
         assert n_layers <= 2, 'more layers = over-smoothing'
         self.n_layers = n_layers
         self.W_V = nn.ModuleList([nn.Linear(k, k, bias=False) for _ in range(n_layers)])
         self.W_E = nn.ModuleList([nn.Linear(k, k, bias=False) for _ in range(n_layers)])
-        self.gates = nn.Parameter(torch.full((n_layers,), 1.0))
+        # gate_init=1.0 means tanh(1.0)=0.76: a RANDOMLY INITIALISED HGNN is injected at 76%
+        # strength into a strongly pretrained representation from step 0, and over a one-epoch run
+        # (~530 steps) the module must first learn not to damage that representation before it can
+        # help. Observed gate traces fall (1.0 -> 0.83 -> 0.71), i.e. the optimiser spends its
+        # budget switching the module off. A small init makes refinement opt-in: the encoders stay
+        # intact and the gate only grows if the graph earns it -- which is also a far more
+        # interpretable figure than one that decays.
+        # Do NOT set exactly 0: tanh'(0)=1 so the gate itself still learns, but the update to W_V /
+        # W_E is scaled by tanh(gate)=0, so the module receives no gradient and never starts. ~0.1
+        # keeps it alive at ~10% strength.
+        self.gates = nn.Parameter(torch.full((n_layers,), float(gate_init)))
         self.edge_head = nn.Linear(k, k, bias=False)
 
     @staticmethod

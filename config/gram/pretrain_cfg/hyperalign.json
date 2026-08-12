@@ -25,7 +25,9 @@
   "edge_dropout": 0.3,
   "hgnn_layers": 2,
   "global_graph": true,
-  "masked_volume": true
+  "masked_volume": true,
+  "w_raw": 1.0,
+  "gate_init": 0.1
  },
  "data_cfg": {
   "train": [

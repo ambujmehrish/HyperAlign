@@ -40,6 +40,11 @@ class GRAM(MMGeneralModule):
         self.w_doc  = float(getattr(self.config, 'w_doc', 0.0))
         # no separate w_xdoc term: the post-graph volume loss is loss_area (see _hg_refine / forward_ret)
         self.w_reg  = float(getattr(self.config, 'w_reg', 0.0))
+        # Weight on the volume loss computed over the UN-refined features -- the representation
+        # inference actually scores, since the hypergraph is by design absent at test time. 0.0 is
+        # the original behaviour (refined features carry the ONLY retrieval loss), which leaves the
+        # deployed representation trained only indirectly. See forward_ret for the full argument.
+        self.w_raw  = float(getattr(self.config, 'w_raw', 0.0))
         self.semantic_edges = bool(getattr(self.config, 'semantic_edges', False))
         # Per-clip missing-modality masking in the Gramian volume. This is INDEPENDENT of the
         # hypergraph (it applies in stage A too, and at inference where the graph is off), so it
@@ -64,7 +69,8 @@ class GRAM(MMGeneralModule):
         self.sem_sim_std = float(_ss) if _ss is not None else None
         if self.stage == 'B':
             from .hypergraph import GatedHGNN
-            self.hgnn = GatedHGNN(contra_dim, n_layers=int(getattr(self.config, 'hgnn_layers', 2)))
+            self.hgnn = GatedHGNN(contra_dim, n_layers=int(getattr(self.config, 'hgnn_layers', 2)),
+                                  gate_init=float(getattr(self.config, 'gate_init', 1.0)))
         self.itm_head = Match_head(self.multimodal_dim)
         self.vision_frame_embedding = nn.Parameter(0.02 * torch.randn(1, self.config.max_vision_sample_num, self.multimodal_dim))
         self.audio_frame_embedding = nn.Parameter(0.02 * torch.randn(1, self.config.max_audio_sample_num, self.multimodal_dim))
@@ -527,15 +533,33 @@ class GRAM(MMGeneralModule):
             if "depth_pixels" in batch.keys():
                 feat_d = self.batch_get(batch,'feat_d')
 
-            # ---- Hypergraph refinement is on the main path. Refine before the gather so the volume
-            # loss below (GRAM's own) is computed on the refined embeddings, and the eval branch
-            # refines identically. There is no separate loss_xdoc: loss_area is the graph loss.
+            # ---- Hypergraph refinement is on the main path: the volume loss below is computed on
+            # the REFINED embeddings. The graph is deliberately absent at inference (it exists to
+            # shape the encoders during training, not to be part of the deployed model), which
+            # creates a train/test mismatch this block has to account for:
+            #
+            #   training  optimises the encoders so that HGNN(encoder(x)) retrieves well
+            #   inference scores encoder(x) directly, with no HGNN
+            #
+            # With the gate at 0.7-0.8, HGNN(x) differs substantially from x, so the encoders are
+            # free to offload work onto a module that will not be there -- and the representation
+            # inference actually uses never receives a direct retrieval gradient. That is the
+            # standard failure mode for a discarded auxiliary module, and it matches the measured
+            # result (stage B straddles stage A: +0.5 at 5 epochs, -1.2 at 1).
+            #
+            # w_raw > 0 adds the SAME volume loss on the un-refined features (see below), so the
+            # inference-path representation is trained directly and the graph becomes a genuine
+            # regulariser on top of it rather than a substitute for it. w_raw = 0 is the original
+            # refined-only behaviour.
             hg_h = hg_h_prenorm = None
+            _raw = None
             if self.stage == 'B':
                 # LEAK-FREE: refine ONLY non-text (gallery) modalities; feat_t stays the raw anchor.
                 _f = {'V': feat_v, 'A': feat_a}
                 if "raw_subtitles" in batch.keys(): _f['S'] = feat_s
                 if "depth_pixels" in batch.keys():  _f['D'] = feat_d
+                if self.w_raw > 0:
+                    _raw = dict(_f)          # pre-refinement copies, for the raw-path loss
                 z_hat, hg_h, hg_h_prenorm = self._hg_refine(_f, t_frozen=feat_t, use_semantic=True)
                 self._gc=getattr(self,"_gc",0)+1
                 if self._gc%50==1 and dist.get_rank()==0: print(f"[GATE] step~{self._gc}: {self.hgnn.gates.detach().float().tolist()}",flush=True)
@@ -594,6 +618,26 @@ class GRAM(MMGeneralModule):
             ) / 2
 
             loss_area.append(loss)
+
+            # ---- raw-path retrieval loss: the SAME Gramian-volume objective on the UN-refined
+            # features, i.e. exactly what inference will score. Without this the encoders are only
+            # ever asked to be good after refinement (see the note above the _hg_refine call), so
+            # the deployed representation is optimised only indirectly. Same targets, same temp,
+            # same masking, same modality order as the refined path -- the only difference is which
+            # tensors go in.
+            if _raw is not None:
+                _rl = [_raw[m] for m in ('V', 'A', 'S', 'D') if m in _raw]     # local
+                _ra = [concat_all_gather(x) for x in _rl]                      # gathered
+                _vol_r = volume_computation_masked(
+                    feat_t, _ra, present=present_from_feats(_ra) if self.masked_volume else None
+                ) / self.contra_temp
+                _vol_rT = volume_computation_masked(
+                    feat_t_all, _rl, present=present_from_feats(_rl) if self.masked_volume else None
+                ).T / self.contra_temp
+                loss_dict['loss_area_raw'] = self.w_raw * (
+                    F.cross_entropy(-_vol_r, targets, label_smoothing=0.1)
+                    + F.cross_entropy(-_vol_rT, targets, label_smoothing=0.1)
+                ) / 2
 
             # hypergraph auxiliaries (loss_area above is the graph's retrieval loss)
             if self.stage == 'B':
