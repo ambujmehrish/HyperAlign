@@ -293,10 +293,14 @@ modalities.
 sbatch slurm_scripts/smoke_train.sh
 sbatch slurm_scripts/ft_smoke.sh msrvtt
 
-# pretraining (24 h; auto-resumes from $HA_WORK/workdir_*/4model on resubmit)
-sbatch slurm_scripts/run_pretrain.sh            # HyperAlign, stage B
-sbatch slurm_scripts/run_gram_base.sh           # ablation, stage A
-sbatch slurm_scripts/run_gram_base_maskedvol.sh # ablation, stage A + masked volume
+# pretraining. HA_RUN_NAME picks the workdir, HA_CFG picks the config, so concurrent runs never
+# share an output directory -- the launcher refuses to start if a live job already holds one.
+sbatch slurm_scripts/run_pretrain.sh                                   # -> workdir_pretrain
+HA_RUN_NAME=distill sbatch slurm_scripts/run_pretrain.sh               # -> workdir_distill
+HA_RUN_NAME=base HA_CFG=config/gram/pretrain_cfg/gram_base.json \
+  sbatch slurm_scripts/run_pretrain.sh                                 # -> workdir_base
+# (run_gram_base.sh / run_gram_base_maskedvol.sh predate HA_CFG and hardcode workdir_gram_base*;
+#  prefer the HA_CFG form above, which cannot collide.)
 
 # finetuning: all 5 benchmarks (msrvtt_depth chains after msrvtt)
 bash slurm_scripts/finetune_all.sh
