@@ -1,7 +1,7 @@
 {
  "run_cfg": {
   "default": "./config/gram/default_run_cfg.json",
-  "learning_rate": 2e-05,
+  "learning_rate": 0.0001,
   "first_eval": false,
   "save_steps": 12,
   "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",

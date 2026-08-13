@@ -351,6 +351,20 @@ recipe outright: `finetuneVolume256batchlossonlyvolume4Mod120k/ckpt/model_step_4
 volume-only loss, 4 modalities, 120k samples — so `120000/256 = 468` steps, and the released
 checkpoint is step 459. **GRAM pretrains for one epoch.**
 
+The paper states the same thing directly, and one more value we had wrong:
+
+> "We set the batch size to 256 and a single epoch pretraining on 4 NVIDIA A100 cards."
+> "We pretrain the GRAM-based model on a subset of the VAST27M dataset comprising 150k random
+> samples with a learning rate of 1e-4 using the AdamW optimizer with weight decay and batch
+> size of 256."
+
+`config/gram/default_run_cfg.json` — GRAM's own file, unmodified — agrees: `learning_rate: 1e-4`,
+`optim: adamw`. But every pretrain config here overrode it to `2e-5`, so all runs up to and
+including `ha_wraw` and `distill` trained at **one fifth of the paper's learning rate**. That was an
+inherited guess of the same kind as the `epoch5/bs128` header, and it was never checked against the
+source. Corrected to `1e-4`; every result predating that change is at the wrong LR and needs
+rerunning before it can be compared with GRAM's checkpoint.
+
 This repo ran five, and the consequence is not just length. `utils/sched.py` parameterises the LR
 schedule by `num_train_steps`, so stretching the run stretches the decay:
 

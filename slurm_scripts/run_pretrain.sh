@@ -11,7 +11,7 @@
 #SBATCH --job-name=pretrain
 #SBATCH -o /leonardo/home/userexternal/amehrish/HyperAlign/slurm_scripts/logs/train4_%j.out
 #SBATCH -e /leonardo/home/userexternal/amehrish/HyperAlign/slurm_scripts/logs/train4_%j.out
-# VAST-150k pretraining launcher — GRAM recipe (epoch1/bs256/lr2e-5/frames2) with hypergraph
+# VAST-150k pretraining launcher — GRAM recipe (epoch1/bs256/lr1e-4/frames2) with hypergraph
 # alignment.
 # The recipe is read off GRAM's own released checkpoint, whose training directory is named
 # `finetuneVolume256batchlossonlyvolume4Mod120k` and whose file is `model_step_459.pt`:
