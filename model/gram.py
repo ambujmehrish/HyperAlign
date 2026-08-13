@@ -78,6 +78,16 @@ class GRAM(MMGeneralModule):
         # Apply the hypergraph at INFERENCE, over the whole gallery. Requires sem_edge_src='fusion'
         # for the semantic half to be legal; doc edges alone are always legal.
         self.infer_graph = bool(getattr(self.config, 'infer_graph', False))
+        # IMPUTE a missing modality instead of dropping it. The presence mask disconnects a missing
+        # vertex from its hyperedges in BOTH directions, so it sends nothing and receives nothing and
+        # stays exactly zero -- the graph cannot reconstruct it, and only the masked volume can cope
+        # by scoring the clip at lower arity. impute_missing makes the incidence asymmetric: the
+        # vertex still sends nothing, but receives its doc's edge summary, so it is reconstructed
+        # from the modalities the clip DOES have. The refined volume is then full-arity and directly
+        # comparable with complete clips -- which is the point: GRAM's volume is undefined when a
+        # modality is absent (singular Gram matrix -> vol 0 -> ties at the top), and imputation makes
+        # it defined rather than merely masking it away.
+        self.impute_missing = bool(getattr(self.config, 'impute_missing', False))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -517,7 +527,12 @@ class GRAM(MMGeneralModule):
             H_sem = semantic_incidence(adj, B, mask, device,
                                        present=present if self.sem_edge_presence_mask else None)
         z32 = {m: z[m].float() for m in mask}
-        z_hat, _h, _hp = self.hgnn(z32, mask, H_doc, H_sem, present=present)
+        H_recv = None
+        if self.impute_missing:
+            _hd_r = doc_incidence(B, mask, device, present=None).float()
+            _hs_r = semantic_incidence(adj, B, mask, device, present=None) if H_sem is not None else None
+            H_recv = _hd_r if _hs_r is None else torch.cat([_hd_r, _hs_r], dim=1)
+        z_hat, _h, _hp = self.hgnn(z32, mask, H_doc, H_sem, present=present, H_recv=H_recv)
         return [z_hat[m].to(feats_list[i].dtype) for i, m in enumerate(mask)]
 
     @staticmethod
@@ -597,7 +612,14 @@ class GRAM(MMGeneralModule):
                 H_sem = H_sem.float()
         with torch.cuda.amp.autocast(enabled=False):
             z32 = {m: feats[m].float() for m in feats}
-            z_hat, h, h_prenorm = self.hgnn(z32, mask, H_doc, H_sem, present=pres)
+            H_recv = None
+        if self.impute_missing:
+            # Same hyperedges, no presence factor: a missing vertex is a RECEIVER of its doc edge
+            # (and of any semantic edges) while still contributing nothing to them.
+            _hd_r = doc_incidence(B, mask, device, present=None).float()
+            _hs_r = semantic_incidence(adj, B, mask, device, present=None) if H_sem is not None else None
+            H_recv = _hd_r if _hs_r is None else torch.cat([_hd_r, _hs_r], dim=1)
+        z_hat, h, h_prenorm = self.hgnn(z32, mask, H_doc, H_sem, present=pres, H_recv=H_recv)
         if go_global:
             # GatherLayer concatenates rank-ordered, so this rank owns rows [rank*B_local, ...).
             # Slicing back keeps every caller downstream (losses, the later gathers) unchanged.
@@ -712,7 +734,8 @@ class GRAM(MMGeneralModule):
                       f"  audio_absent={_na}/{0 if _ha_all is None else _ha_all.shape[0]}"
                       f"  masked_volume={self.masked_volume}", flush=True)
             volume = volume_computation_masked(
-                feat_t, _g, present=self._presence(_g, _ord, _ha_all) if self.masked_volume else None)
+                feat_t, _g, present=self._presence(_g, _ord, _ha_all)
+                if (self.masked_volume and not self.impute_missing) else None)
             volume = volume / self.contra_temp
             #AreaT (Video,batch_all)
             if "raw_subtitles" in batch.keys():
@@ -723,7 +746,8 @@ class GRAM(MMGeneralModule):
             else:
                 _gT = [feat_v,feat_a]
             volumeT = volume_computation_masked(
-                feat_t_all, _gT, present=self._presence(_gT, _ord, _ha) if self.masked_volume else None).T
+                feat_t_all, _gT, present=self._presence(_gT, _ord, _ha)
+                if (self.masked_volume and not self.impute_missing) else None).T
             volumeT = volumeT / self.contra_temp
             rank = dist.get_rank()
             bs = feat_t.size(0)

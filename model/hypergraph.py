@@ -10,9 +10,14 @@ import torch.nn.functional as F
 def doc_incidence(B, mask, device, present=None):
     """H_doc (|V|, B): hyperedge j connects the non-text vertices of doc j. Block-diagonal.
 
-    present (B, k1) 0/1: a MISSING modality (zero-filled feature) is disconnected from its doc edge
-    (weight 0), so it neither feeds nor receives graph messages and never pollutes the fusion. None
-    => every vertex connected (complete-modality behaviour, unchanged)."""
+    present (B, k1) 0/1: a MISSING modality (zero-filled feature) gets weight 0 on its doc edge, so
+    it contributes nothing to the edge summary. None => every vertex connected (complete-modality
+    behaviour, unchanged).
+
+    Build this TWICE to impute: once with `present` for the send direction, once with present=None
+    for the receive direction (GatedHGNN.forward's H_recv). Using the masked version for both
+    isolates a missing vertex completely -- it stays exactly zero and the graph cannot reconstruct
+    it, which leaves the masked volume as the only way to cope."""
     k1 = len(mask)
     H = torch.zeros(B * k1, B, device=device)
     idx = torch.arange(B, device=device)
@@ -135,7 +140,7 @@ class GatedHGNN(nn.Module):
         dv = H.sum(dim=1).clamp(min=1.0)                       # vertex degree
         return H / d.unsqueeze(0), H / dv.unsqueeze(1)
 
-    def forward(self, z, mask, H_doc, H_sem=None, present=None):
+    def forward(self, z, mask, H_doc, H_sem=None, present=None, H_recv=None):
         """z: dict non-text modality -> (B, K) L2-normed (no 'T'). present (B,k1) 0/1 marks which
         modalities a doc actually has; a missing one is masked out of the doc edge (H_doc) and of the
         fusion mean, so it neither passes messages nor dilutes h. present=None -> complete behaviour.
@@ -146,7 +151,15 @@ class GatedHGNN(nn.Module):
         F_V = torch.stack([z[m] for m in order], dim=1).reshape(B * k1, -1)
 
         H = H_doc if H_sem is None else torch.cat([H_doc, H_sem], dim=1)
-        H_e, H_v = self._norm(H)
+        H_e, _ = self._norm(H)                      # SEND side: presence-masked
+        # RECEIVE side. With H_recv=None both directions use the same presence-masked H, so a
+        # missing modality is isolated: it sends nothing AND receives nothing, its vertex stays
+        # exactly zero, and the graph cannot reconstruct it -- only the masked volume can drop it.
+        # Passing an UNMASKED H_recv makes the incidence asymmetric: a missing vertex still
+        # contributes nothing to the edge summary (it has no information to give) but does receive
+        # it, so it is imputed from the other modalities of its OWN document. That is a per-clip
+        # operation on the doc hyperedge -- no gallery, no transduction -- so it works at inference.
+        _, H_v = self._norm(H if H_recv is None else H_recv)
 
         for l in range(self.n_layers):
             F_E = F.gelu(H_e.T @ self.W_V[l](F_V))
