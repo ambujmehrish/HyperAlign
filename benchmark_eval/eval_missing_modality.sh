@@ -40,11 +40,30 @@ EVAL=$H/benchmark_eval
 source "$H/slurm_scripts/env.sh" || exit 1
 cd "$H"
 
-SRC="$EVAL/configs/zs_${BENCH}.json"
-[ -f "$SRC" ] || { echo "ERROR: no config $SRC -- run 'python3 $EVAL/make_configs.py' first"; exit 1; }
-
 RES=$EVAL/missing_modality/${BENCH}
 mkdir -p "$RES" "$EVAL/logs"
+
+# Regenerate the config into an ISOLATED directory rather than reading $EVAL/configs, which holds
+# whatever ran last. A sweep once picked up a smoke config there and silently evaluated a 22-step
+# smoke checkpoint on an 80-clip subset -- the table looked plausible (R@1 76.2) and was meaningless.
+# GRAM_CKPT selects the checkpoint; make_configs.py aborts if it is set-but-empty.
+export GRAM_CFG_DIR="$RES/configs"
+mkdir -p "$GRAM_CFG_DIR"
+python3 "$EVAL/make_configs.py" || { echo "ERROR: make_configs.py failed" >&2; exit 1; }
+SRC="$GRAM_CFG_DIR/zs_${BENCH}.json"
+[ -f "$SRC" ] || { echo "ERROR: make_configs.py produced no $SRC" >&2; exit 1; }
+python3 - "$SRC" <<'PYCHK'
+import json, os, sys
+c = json.load(open(sys.argv[1])); v = c['data_cfg']['val'][0]
+t = v['txt'] if os.path.isabs(v['txt']) else v['txt']
+n = len(json.load(open(t)))
+print(f"  sweep will evaluate: task={v['task']}  gallery={n} clips")
+print(f"    txt  : {t}")
+print(f"    ckpt : {c['run_cfg']['checkpoint']}")
+if 'smoke' in t or 'smoke' in c['run_cfg']['checkpoint']:
+    sys.exit("  ERROR: this is a SMOKE config -- refusing to run a sweep on it")
+PYCHK
+[ $? -eq 0 ] || exit 1
 export HA_DROP_MOD=$DROP
 export HA_DROP_SEED=${HA_DROP_SEED:-1234}
 
