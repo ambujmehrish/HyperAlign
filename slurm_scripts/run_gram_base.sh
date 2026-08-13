@@ -24,7 +24,8 @@ cd "$H"
 # auto-resume: continue from the latest optimizer checkpoint after a crash
 RESUME=""
 if ls "$W"/workdir_gram_base/4model/ckpt/optimizer_step_*.pt >/dev/null 2>&1; then
-  RESUME="--resume true"; echo "RESUME: checkpoint found -> continue"
+  # --resume is store_true; passing a value makes argparse reject the bare "true"
+  RESUME="--resume"; echo "RESUME: checkpoint found -> continue"
 else
   echo "FRESH"
 fi

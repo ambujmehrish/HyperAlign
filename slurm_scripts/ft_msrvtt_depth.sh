@@ -22,7 +22,7 @@ cd "$H"; mkdir -p slurm_scripts/logs "$W/workdir/finetune_msrvtt_depth"
 # init = the finetuned msrvtt checkpoint (not the pretrained one) — depth stacks on it
 INIT=$(ls -t "$W"/workdir/finetune_msrvtt/ckpt/best_*.pt 2>/dev/null | head -1)
 [ -z "$INIT" ] && { echo "ERROR: msrvtt finetune not done — run 'sbatch ft_msrvtt.sh' FIRST (depth stacks on it)"; exit 1; }
-RESUME=""; ls "$W"/workdir/finetune_msrvtt_depth/ckpt/optimizer_step_*.pt >/dev/null 2>&1 && RESUME="--resume true"
+RESUME=""; ls "$W"/workdir/finetune_msrvtt_depth/ckpt/optimizer_step_*.pt >/dev/null 2>&1 && RESUME="--resume"
 echo "START $(date +%T)  finetune MSR-VTT+DEPTH from msrvtt-finetuned  (init=$INIT)"
 srun python3 -m torch.distributed.launch --nnodes 1 --node_rank 0 --nproc_per_node 4 --master_port 9899 \
   ./run.py --config ./config/gram/finetune_cfg/retrieval-msrvtt_depth.json \
