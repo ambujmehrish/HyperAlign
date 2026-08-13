@@ -319,8 +319,14 @@ def evaluate_ret(model, tasks, val_loader, global_step):
             _order = [m for m in 'vasd' if m in _mods]   # same order _feats was built in
             _j = _order.index('a')
             if _ha.shape[0] == _present.shape[0]:
-                _present[:, _j] = _ha.to(_present.dtype)
-                _n_absent = int((_ha < 0.5).sum().item())
+                # AND, not overwrite. The norm test catches a modality that is zero HERE -- which is
+                # how the synthetic dropout harness injects absence, after the loader has already
+                # reported the file as present. Overwriting the column with the loader flag marks
+                # those clips present again and silently disables the mask, making masked ON and
+                # masked OFF byte-identical across an entire drop sweep. A modality counts as
+                # present only if the loader found the file AND the embedding is non-zero.
+                _present[:, _j] = torch.minimum(_present[:, _j], _ha.to(_present.dtype))
+                _n_absent = int((_present[:, _j] < 0.5).sum().item())
             else:
                 LOGGER.info(f"[VOLUME] has_audio length {_ha.shape[0]} != gallery {_present.shape[0]}"
                             f" -- NOT applying loader presence (would misalign clips)")
@@ -346,7 +352,7 @@ def evaluate_ret(model, tasks, val_loader, global_step):
         LOGGER.info(f"[VOLUME] task={_task} -> volume over T+"
                     f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal"
                     f"  masked_volume={getattr(model.config, 'masked_volume', True)}"
-                    f"  audio_absent(loader)={_n_absent}"
+                    f"  audio_absent={_n_absent}  gallery={_feats[0].shape[0]}"
                     + (f"  drop={_drop_info['mod']}@{_drop_info['rate']}"
                        f"({_drop_info['n_dropped']}/{_drop_info['n_clips']})" if _drop_info else "  drop=none"))
         
