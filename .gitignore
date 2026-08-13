@@ -1,2 +1,26 @@
 __pycache__/
 *.pyc
+
+# ---- generated eval configs -------------------------------------------------
+# make_configs.py writes these fresh on every run with the checkpoint baked in. Tracking them
+# means a stale one survives in the working tree and gets picked up by a script that READS rather
+# than regenerates -- which is exactly how a missing-modality sweep ended up scoring a 22-step
+# smoke checkpoint on an 80-clip gallery and printing a plausible-looking table.
+benchmark_eval/configs/
+benchmark_eval/eval_results*/
+benchmark_eval/missing_modality/
+benchmark_eval/ft_eval_results/
+benchmark_eval/smoke_*/
+benchmark_eval/*_annotation*.json
+benchmark_eval/logs/
+
+# ---- symlinks into $HA_WORK (created by setup_paths.sh) ---------------------
+/datasets
+/pretrained_weights
+/workdir*
+
+# ---- run output --------------------------------------------------------------
+slurm_scripts/logs/
+wandb/
+temp.txt
+data_real/
