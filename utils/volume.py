@@ -271,6 +271,41 @@ def volume_computation_masked(language, inputs, present=None):
     return res
 
 
+def gallery_self_volume(inputs, present=None, eps=1e-6):
+    """(B2,) volume of the parallelotope spanned by each gallery clip's OWN modalities.
+
+    This is the query-independent factor hiding inside GRAM's score. For a set of vectors,
+
+        vol(c, z1..zk) = vol(z1..zk) * dist(c, span(z1..zk))
+
+    so GRAM's vol(c, z1..zk) is the geometric quantity you want -- the caption's distance to the
+    subspace the clip spans -- multiplied by a per-clip constant that does not depend on the query.
+
+    That constant is not benign. vol(z1..zk) -> 0 whenever a clip's modalities become linearly
+    dependent (for k=2, whenever cos(z1,z2) -> +-1), and then vol(c, z1..zk) -> 0 for EVERY query.
+    Since the volume is a dissimilarity scored by CE(-vol), zero is the BEST score: such a clip
+    wins every retrieval it is entered in. It is the same degeneracy as a missing modality
+    (singular Gram -> vol 0 -> ties at the top), except it fires on complete clips.
+
+    Dividing the score by this restores dist(c, span(.)), which is invariant to how the clip's
+    modalities happen to be arranged among themselves.
+
+    present (B2, L): a missing modality becomes a phantom orthonormal axis (factor 1), matching
+    volume_computation_masked, so the normaliser is taken over the modalities the clip really has.
+    """
+    B2 = inputs[0].shape[0]
+    L = len(inputs)
+    rows = []
+    for i in range(L):
+        rows.append(torch.stack([torch.einsum('bi,bi->b', inputs[i], inputs[j]) for j in range(L)], dim=-1))
+    G = torch.stack(rows, dim=-2)                              # (B2, L, L)
+    if present is not None:
+        p = present.to(G.dtype)                                # (B2, L)
+        keep = p.unsqueeze(2) * p.unsqueeze(1)
+        G = G * keep + torch.diag_embed(1.0 - p)
+    return torch.sqrt(torch.abs(torch.det(G.float())) + eps)
+
+
 def volume_computation(language, *inputs):
     """
     General function to compute volume for contrastive learning loss functions.

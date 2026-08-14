@@ -14,7 +14,7 @@ from utils.logger import LOGGER
 from utils.distributed import  all_gather_list, ddp_allgather
 from utils.tool import NoOp
 from easydict import EasyDict as edict
-from utils.volume import volume_computation4,volume_computation3, volume_computation5, volume_computation, volume_computation_masked
+from utils.volume import volume_computation4,volume_computation3, volume_computation5, volume_computation, volume_computation_masked, gallery_self_volume
 import wandb
 
 
@@ -349,6 +349,20 @@ def evaluate_ret(model, tasks, val_loader, global_step):
                     f"  sem_edge_src={getattr(model.config, 'sem_edge_src', 'caption')}"
                     f"  k={getattr(model.config, 'knn_k', None)}  N={_feats[0].shape[0]}")
         area = volume_computation_masked(feat_t, _feats, present=_present)
+        # ---- SUBSPACE NORMALISATION (volume_normalized) -----------------------------------
+        # vol(c, z1..zk) = vol(z1..zk) * dist(c, span(z1..zk)). GRAM scores the left side, so every
+        # clip carries a query-independent factor vol(z1..zk). A clip whose modalities are nearly
+        # collinear has vol(z1..zk) ~ 0 and therefore scores ~0 -- the BEST score, since the volume
+        # is a dissimilarity -- against EVERY query. Dividing it out leaves dist(c, span(.)), which
+        # is what the score is meant to measure. No parameters, no retraining.
+        _gv = gallery_self_volume(_feats, present=_present)
+        _q = torch.quantile(_gv.float(), torch.tensor([0.0, .01, .5, .99, 1.0], device=_gv.device))
+        LOGGER.info(f"[GALLERY-VOL] min={_q[0]:.4f} p1={_q[1]:.4f} median={_q[2]:.4f} "
+                    f"p99={_q[3]:.4f} max={_q[4]:.4f}  spread(max/median)={_q[4]/_q[2].clamp(min=1e-8):.1f}x"
+                    f"  near-degenerate(<0.1*median)={int((_gv < 0.1*_q[2]).sum())}/{_gv.shape[0]}")
+        if getattr(model.config, 'volume_normalized', False):
+            area = area / (_gv.unsqueeze(0) + 1e-6)
+            LOGGER.info("[GALLERY-VOL] volume_normalized=ON -> scoring dist(c, span(clip))")
         LOGGER.info(f"[VOLUME] task={_task} -> volume over T+"
                     f"{''.join(m.upper() for m in 'vasd' if m in _mods)} = {len(_feats)+1}-modal"
                     f"  masked_volume={getattr(model.config, 'masked_volume', True)}"
