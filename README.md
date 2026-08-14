@@ -391,83 +391,113 @@ per epoch — and three of the four runs recorded their best score at the *very 
 at the first sample is not evidence of a peak; it is the absence of any earlier sample. It is
 equally consistent with the model having peaked at step 30, or with it never having improved on
 its initialisation at all. `valid_freq` is now `20`, which over the corrected 530-step run means a
-validation every ~25 steps — about twenty points inside the single epoch, and enough resolution for
-`save_best` to catch the maximum rather than the first sample it happens to see.
+validation every ~25 steps — about twenty points inside the single epoch.
+
+That resolution is now purely diagnostic. `save_best` is `false`, matching GRAM's own
+`default_run_cfg` and their released `model_step_459.pt`, so the evaluated checkpoint is always the
+final step regardless of what validation did. Selecting the best of ~20 validations on MSR-VTT —
+which is also a reported benchmark — was worth roughly 3 R@1 on that benchmark relative to held-out
+ones, an advantage GRAM does not take.
 
 ## 7. Results
 
-### The paper's table is not a reachable target here
+All numbers below share one protocol, verified value-by-value against a primary source:
 
-GRAM's released checkpoint (`GRAM_pretrained_TVAS/ckpt/model_step_459.pt`), scored by this
-harness, lands **3.6 R@1 below GRAM's own published table**. That is GRAM's weights, so nothing
-about our method is involved. Scoring the same checkpoint with GRAM's *unmodified*
-`evaluation_mm.py` (`GRAM_UPSTREAM_EVAL=1`) reproduces our numbers to within 0.2 everywhere, so
-the shortfall is not our evaluation code either:
-
-| | ours | GRAM's eval | paper |
-|---|---|---|---|
-| msrvtt tva | 53.2 | 53.4 | 54.2 |
-| msrvtt tvas | 52.5 | 52.5 | 54.8 |
-| didemo tva | 50.8 | 50.7 | 54.2 |
-| activitynet tva | 56.3 | 56.3 | 59.0 |
-| vatex tva | 77.2 | 77.3 | 83.9 |
-| vatex tvas | 76.3 | 76.3 | 83.5 |
-
-With code, metric, galleries, configs and weights all eliminated, the residual is the video data,
-and it orders the way provenance predicts — smallest where the files are identical for everyone,
-largest where they must be rebuilt from YouTube:
-
-| benchmark | gap (GRAM's weights) | video source |
+| | value | verified by |
 |---|---|---|
-| msrvtt | −1.0 / −2.3 | fixed archive |
-| didemo | −3.4 | Flickr / YFCC100M |
-| activitynet | −2.7 | YouTube |
-| vatex | −6.7 / −7.2 | YouTube, 10-second Kinetics segments |
+| batch size | 256 | checkpoint dir name + paper |
+| epochs | 1 | paper + `model_step_459` ≈ 120k/256 |
+| learning rate | 1e-4 | paper + GRAM's own `default_run_cfg` |
+| optimizer | AdamW | paper + their default |
+| vision frames | 2 | **GRAM checkpoint's `vision_frame_embedding` is (1, 2, 768)** |
+| audio segments | 1 | **`audio_frame_embedding` is (1, 1, 768)** |
+| modalities | T+V+A+S | `subtitle` present in 150,154/150,154 annotations |
+| checkpoint | final step, `save_best: false` | their default; their release is `model_step_*` |
 
-**Consequence for reporting:** comparing our runs against the published column charges them ~3.6
-points they did not cause. Use `compare_runs.py --ref=gram_official`, which re-baselines onto
-GRAM's checkpoint measured here, and show the published table separately with this discrepancy
-stated.
+Earlier results in this repo were produced at `lr 2e-5` with `save_best` selection on MSR-VTT.
+Both differ from GRAM, so those numbers are not comparable to GRAM's checkpoint and have been
+quarantined (`tools/cleanup_results.sh`). Nothing below depends on them.
 
-### Recipe vs hypergraph (mean delta vs `gram_official`, same harness)
+### Reproduction: our pipeline against GRAM's own checkpoint
 
-|  | 5 epoch | 1 epoch |
+Zero-shot T2V R@1, same harness, same galleries, same protocol.
+
+| bench | mode | GRAM ckpt | our repro | paper |
+|---|---|---|---|---|
+| msrvtt | tv | 51.9 | **52.6** | 52.8 |
+| msrvtt | tva | 53.2 | 52.2 | 54.2 |
+| msrvtt | tvas | 52.5 | 51.9 | 54.8 |
+| didemo | tv | 50.9 | 49.2 | 54.0 |
+| didemo | tva | 50.8 | 49.4 | 54.2 |
+| activitynet | tv | 55.2 | 53.8 | 58.9 |
+| activitynet | tva | 56.3 | 52.2 | 59.0 |
+| vatex | tv | 76.2 | 76.2 | 81.1 |
+| vatex | tva | 77.2 | 77.5 | 83.9 |
+| vatex | tvas | 76.3 | 76.8 | 83.5 |
+| | **mean vs paper** | **−3.6** | **−4.5** | 0.0 |
+
+Our reproduction is **−0.9** from GRAM's checkpoint, against a measured run-to-run spread of ~1.2 —
+i.e. indistinguishable. The pipeline reproduces GRAM.
+
+The remaining **−3.6 for GRAM's own weights against GRAM's own table** is not ours: scoring that
+checkpoint with GRAM's unmodified `evaluation_mm.py` (`GRAM_UPSTREAM_EVAL=1`) reproduces our
+numbers to within 0.2 on every shared setting. Annotations are md5-identical to upstream,
+`default_model_cfg.json` is identical, `utils/volume.py` is upstream plus additions, and the
+eval-path feature extraction is unchanged. The residual tracks how much each benchmark's video
+data must be rebuilt from third-party sources (msrvtt −1.0, didemo −3.4, activitynet −2.7,
+vatex −6.7), but that ordering is suggestive, not proven.
+
+### The hypergraph does not work
+
+Same recipe, same harness, final checkpoints, one variable.
+
+| bench | mode | hypergraph − plain GRAM |
 |---|---|---|
-| stage A (plain GRAM) | −1.0 | **+0.3** |
-| stage B (hypergraph) | −0.5 | −0.3 |
+| msrvtt | tv / tva / tvas | −0.6 / 0.0 / −2.7 |
+| didemo | tv / tva | −3.3 / −4.6 |
+| activitynet | tv / tva | −3.3 / −3.1 |
+| vatex | tv / tva / tvas | −0.9 / −2.2 / −4.5 |
+| | **mean** | **−2.5** |
 
-Split by whether the benchmark drove checkpoint selection (`save_best` selects on MSR-VTT `tvas`):
+Negative on 9 of 10 settings, at twice the noise floor. The validation curves show the mechanism:
 
-| | MSR-VTT (selected on) | held out (didemo/anet/vatex) |
-|---|---|---|
-| base_5ep | −0.9 | −1.0 |
-| ha_5ep | −1.0 | −0.3 |
-| base_1ep | −0.6 | **+0.7** |
-| ha_1ep | 0.0 | −0.5 |
+```
+step    plain GRAM   hypergraph
+  24        55.6         54.8
+  74        51.7         50.7
+ 324        51.0         49.3
+ 524        51.9         49.2    <- evaluated checkpoint
+```
 
-Two findings:
+Both dip as the volume objective disrupts the VAST representation. **Plain GRAM re-converges and
+plateaus near 52; the hypergraph does not recover.** The residual gate climbs 0.174 → 0.201 across
+exactly that window, so the graph's influence grows during the period the model needs to
+re-stabilise.
 
-1. **The corrected recipe is worth +1.3 on stage A**, and stage A at one epoch is the only
-   configuration that beats GRAM's released checkpoint on data it was not selected against.
-2. **The hypergraph does not help, and under the correct recipe it hurts.** Its sign flips with
-   the schedule: +0.5 at five epochs, −1.2 at one (held-out). A term that helps only under an
-   un-annealed schedule was compensating for that schedule, not adding signal. This is consistent
-   with `_hg_refine` being unreachable at inference (`model/gram.py:539`, inside `if
-   compute_loss:`) — the graph's only channel is the encoder weights it leaves behind.
+This is consistent with the structural argument: the doc hyperedge duplicates the cross-modal
+coupling the Gramian volume already performs, and the semantic hyperedge — the genuinely novel
+part — is built from caption similarity and so cannot run at inference without leaking the query.
+The novel half is unavailable at test time and the available half is redundant.
 
-One seed per cell. Run-to-run spread measured across three matched runs is ~1.2 R@1, so the recipe
-effect clears it and the hypergraph effect sits at it; a second seed for the two one-epoch cells
-would separate "neutral" from "harmful".
+An earlier round at `lr 2e-5` measured the effect as neutral rather than negative. The wrong
+learning rate compressed the difference: the model barely adapted, so neither did the gap.
 
-### The `tv` column is a different protocol from the paper's
+### What remains untested
 
-Upstream builds the volume from every modality the loader supplied and ignores the task string, so
-its `tv`, `tva` and `tvas` rows share one volume and differ only in ITM conditioning. Ours makes
-the task string select the arity, so `ret%tv` is a genuine 2-modal volume — the paper's own text
-("with two modalities the volume computation degenerates to the area of the triangle") supports
-this reading, but it means our `tv` rows do not measure what the published `tv` rows measure. It
-affects `tv` only: for `tva`/`tvas` both versions use the same modalities, which is why the
-upstream-eval control above agrees to 0.2.
+`impute_missing` (see §4). Previously a missing modality was disconnected from its hyperedges in
+*both* message directions, so the graph could never reconstruct it and the masked volume did all
+the work. With an asymmetric incidence the vertex receives its document's edge summary and is
+reconstructed from the modalities the clip does have — per-clip, inductive, valid at inference.
+That is a different claim, in a regime where GRAM's volume is undefined rather than merely
+suboptimal, and nothing measured here speaks to it. It also needs training-time modality dropout
+to be a fair test: `finetune_area` filters to clips with both audio and video (136,674 of 136,694),
+so the HGNN has never seen a zero vertex.
+
+The missing-modality robustness figure previously quoted (99–101% retention vs ~4% collapse) is
+**withdrawn**. It came from a sweep that read a stale smoke config — a 22-step checkpoint on an
+80-clip gallery — compounded by a presence bug that disabled the mask entirely. Both are fixed;
+the number has to be re-earned.
+
 
 ## 8. Known gaps
 
