@@ -12,7 +12,7 @@ from .general_module import TokenMasker, MMGeneralModule, Contra_head, Match_hea
 from utils.distributed import all_gather_with_grad, concat_all_gather, all_gather_list
 from torch.nn import LayerNorm as LayerNorm
 from easydict import EasyDict as edict
-from utils.volume import volume_computation4,volume_computation3, volume_computation5, volume_computation2, volume_computation_masked, present_from_feats
+from utils.volume import volume_computation4,volume_computation3, volume_computation5, volume_computation2, volume_computation_masked, present_from_feats, gallery_self_volume
 
 
 class GRAM(MMGeneralModule):
@@ -88,6 +88,17 @@ class GRAM(MMGeneralModule):
         # modality is absent (singular Gram matrix -> vol 0 -> ties at the top), and imputation makes
         # it defined rather than merely masking it away.
         self.impute_missing = bool(getattr(self.config, 'impute_missing', False))
+        # Train on the SUBSPACE DISTANCE rather than the raw volume:
+        #     vol(c, z1..zk) = vol(z1..zk) * dist(c, span(z1..zk))
+        # The raw-volume loss can be reduced two ways: align the span with the caption (wanted), or
+        # shrink vol(z1..zk) by pulling the clip's modalities together (degeneracy). The hypergraph
+        # is text-blind by design, so the SECOND lever is the only one it can pull unilaterally --
+        # and the measured traces show it pulling it (gate rises while validation falls). Dividing
+        # the score by vol(z1..zk) removes that lever algebraically: the degeneracy direction has
+        # exactly zero gradient, and the only way any module can reduce the loss is by genuinely
+        # rotating the clip's subspace toward its caption. Backprop flows THROUGH the normaliser,
+        # so span collapse is actively penalised, not just unrewarded.
+        self.train_vol_norm = bool(getattr(self.config, 'train_volume_normalized', False))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -535,6 +546,19 @@ class GRAM(MMGeneralModule):
         z_hat, _h, _hp = self.hgnn(z32, mask, H_doc, H_sem, present=present, H_recv=H_recv)
         return [z_hat[m].to(feats_list[i].dtype) for i, m in enumerate(mask)]
 
+    def _vol_score(self, vol, gal_feats, present, dim):
+        """vol -> score used in the contrastive loss.
+
+        train_volume_normalized divides by the gallery clips' own modality volume, turning the raw
+        Gramian volume into dist(c, span(clip)) -- see the flag's comment in __init__. `dim` is the
+        axis of `vol` indexed by gallery clips (1 for volume, 0 pre-transpose handled by caller
+        passing the already-transposed matrix with dim=0's data on rows -> use dim accordingly).
+        """
+        if self.train_vol_norm:
+            gv = gallery_self_volume(gal_feats, present=present).clamp(min=1e-3)
+            vol = vol / (gv.unsqueeze(0) if dim == 1 else gv.unsqueeze(1))
+        return vol / self.contra_temp
+
     @staticmethod
     def _presence(feats, order, has_audio=None):
         """(B, L) per-clip modality presence for gallery tensors `feats`, ordered by `order`.
@@ -733,10 +757,10 @@ class GRAM(MMGeneralModule):
                 print(f"[PRESENCE] loader has_audio={'yes' if _ha is not None else 'NO -> norm fallback'}"
                       f"  audio_absent={_na}/{0 if _ha_all is None else _ha_all.shape[0]}"
                       f"  masked_volume={self.masked_volume}", flush=True)
-            volume = volume_computation_masked(
-                feat_t, _g, present=self._presence(_g, _ord, _ha_all)
-                if (self.masked_volume and not self.impute_missing) else None)
-            volume = volume / self.contra_temp
+            _pres_g = self._presence(_g, _ord, _ha_all) \
+                if (self.masked_volume and not self.impute_missing) else None
+            volume = self._vol_score(
+                volume_computation_masked(feat_t, _g, present=_pres_g), _g, _pres_g, dim=1)
             #AreaT (Video,batch_all)
             if "raw_subtitles" in batch.keys():
                 if "depth_pixels" in batch.keys():
@@ -745,10 +769,10 @@ class GRAM(MMGeneralModule):
                     _gT = [feat_v,feat_a,feat_s]
             else:
                 _gT = [feat_v,feat_a]
-            volumeT = volume_computation_masked(
-                feat_t_all, _gT, present=self._presence(_gT, _ord, _ha)
-                if (self.masked_volume and not self.impute_missing) else None).T
-            volumeT = volumeT / self.contra_temp
+            _pres_gT = self._presence(_gT, _ord, _ha) \
+                if (self.masked_volume and not self.impute_missing) else None
+            volumeT = self._vol_score(
+                volume_computation_masked(feat_t_all, _gT, present=_pres_gT).T, _gT, _pres_gT, dim=0)
             rank = dist.get_rank()
             bs = feat_t.size(0)
             targets = torch.linspace(rank * bs, rank * bs + bs - 1, bs, dtype=int).to(volume.device)
@@ -769,12 +793,12 @@ class GRAM(MMGeneralModule):
             if _raw is not None and self.w_raw > 0:
                 _rl = [_raw[m] for m in ('V', 'A', 'S', 'D') if m in _raw]     # local
                 _ra = [concat_all_gather(x) for x in _rl]                      # gathered
-                _vol_r = volume_computation_masked(
-                    feat_t, _ra, present=self._presence(_ra, _ord, _ha_all) if self.masked_volume else None
-                ) / self.contra_temp
-                _vol_rT = volume_computation_masked(
-                    feat_t_all, _rl, present=self._presence(_rl, _ord, _ha) if self.masked_volume else None
-                ).T / self.contra_temp
+                _pres_ra = self._presence(_ra, _ord, _ha_all) if self.masked_volume else None
+                _vol_r = self._vol_score(
+                    volume_computation_masked(feat_t, _ra, present=_pres_ra), _ra, _pres_ra, dim=1)
+                _pres_rl = self._presence(_rl, _ord, _ha) if self.masked_volume else None
+                _vol_rT = self._vol_score(
+                    volume_computation_masked(feat_t_all, _rl, present=_pres_rl).T, _rl, _pres_rl, dim=0)
                 loss_dict['loss_area_raw'] = self.w_raw * (
                     F.cross_entropy(-_vol_r, targets, label_smoothing=0.1)
                     + F.cross_entropy(-_vol_rT, targets, label_smoothing=0.1)
