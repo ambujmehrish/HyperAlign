@@ -115,10 +115,13 @@ class GatedHGNN(nn.Module):
         F_V <- F_V + tanh(gate_l) * F_Vn
     """
 
-    def __init__(self, k=512, n_layers=2, gate_init=1.0):
+    MODS = 'VASD'                     # fixed letter order for per-modality gates
+
+    def __init__(self, k=512, n_layers=2, gate_init=1.0, per_mod_gate=False):
         super().__init__()
         assert n_layers <= 2, 'more layers = over-smoothing'
         self.n_layers = n_layers
+        self.per_mod_gate = bool(per_mod_gate)
         self.W_V = nn.ModuleList([nn.Linear(k, k, bias=False) for _ in range(n_layers)])
         self.W_E = nn.ModuleList([nn.Linear(k, k, bias=False) for _ in range(n_layers)])
         # gate_init=1.0 means tanh(1.0)=0.76: a RANDOMLY INITIALISED HGNN is injected at 76%
@@ -131,7 +134,14 @@ class GatedHGNN(nn.Module):
         # Do NOT set exactly 0: tanh'(0)=1 so the gate itself still learns, but the update to W_V /
         # W_E is scaled by tanh(gate)=0, so the module receives no gradient and never starts. ~0.1
         # keeps it alive at ~10% strength.
-        self.gates = nn.Parameter(torch.full((n_layers,), float(gate_init)))
+        # per_mod_gate: one gate per (layer, modality letter) instead of per layer. With a single
+        # shared gate every modality receives the same fraction of the same edge summary, so the
+        # only fusion the module can express is uniform averaging -- the collinearity operator.
+        # Per-modality gates let the exchange be ASYMMETRIC: audio can take a lot of clip context
+        # (its embeddings are the noisiest) while video takes almost none. Uniform init keeps
+        # step 0 identical to the shared-gate module.
+        _shape = (n_layers, len(self.MODS)) if self.per_mod_gate else (n_layers,)
+        self.gates = nn.Parameter(torch.full(_shape, float(gate_init)))
         self.edge_head = nn.Linear(k, k, bias=False)
 
     @staticmethod
@@ -165,7 +175,13 @@ class GatedHGNN(nn.Module):
             F_E = F.gelu(H_e.T @ self.W_V[l](F_V))
             _msg = H_v @ self.W_E[l](F_E)
             F_Vn = F.gelu(_msg) if l < self.n_layers - 1 else _msg
-            F_V = F_V + torch.tanh(self.gates[l]) * F_Vn
+            if self.per_mod_gate:
+                # vertices are doc-major [doc0:m0..mk, doc1:m0..mk, ...], so a per-modality gate
+                # vector tiles across docs with a plain repeat
+                _g = self.gates[l][[self.MODS.index(m) for m in order]]        # (k1,)
+                F_V = F_V + (torch.tanh(_g).repeat(B)).unsqueeze(1) * F_Vn
+            else:
+                F_V = F_V + torch.tanh(self.gates[l]) * F_Vn
 
         V = F_V.reshape(B, k1, -1)
         z_hat = {m: F.normalize(V[:, i], dim=-1) for i, m in enumerate(order)}

@@ -108,7 +108,8 @@ class GRAM(MMGeneralModule):
         if self.stage == 'B':
             from .hypergraph import GatedHGNN
             self.hgnn = GatedHGNN(contra_dim, n_layers=int(getattr(self.config, 'hgnn_layers', 2)),
-                                  gate_init=float(getattr(self.config, 'gate_init', 1.0)))
+                                  gate_init=float(getattr(self.config, 'gate_init', 1.0)),
+                                  per_mod_gate=bool(getattr(self.config, 'per_mod_gate', False)))
         self.itm_head = Match_head(self.multimodal_dim)
         self.vision_frame_embedding = nn.Parameter(0.02 * torch.randn(1, self.config.max_vision_sample_num, self.multimodal_dim))
         self.audio_frame_embedding = nn.Parameter(0.02 * torch.randn(1, self.config.max_audio_sample_num, self.multimodal_dim))
