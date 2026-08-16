@@ -104,7 +104,7 @@ def main(args):
     rest = []
     for a in args:
         if a.startswith('--ref='):
-            ref = a.split('=', 1)[1]
+            ref = [r.strip() for r in a.split('=', 1)[1].split(',') if r.strip()]
         elif a.startswith('--stage='):
             stage = a.split('=', 1)[1]
             assert stage in ('itm', 'volume'), f"--stage must be itm or volume, got {stage}"
@@ -119,9 +119,12 @@ def main(args):
         runs[name] = collect(path, stage)
     if not runs:
         return 1
-    if ref and ref not in runs:
-        print(f"  !! --ref={ref} is not one of the runs given: {', '.join(runs)}")
-        return 1
+    if ref:
+        missing = [r for r in ref if r not in runs]
+        if missing:
+            print(f"  !! --ref names not among the runs given: {', '.join(missing)} "
+                  f"(runs: {', '.join(runs)})")
+            return 1
 
     names = list(runs)
     w = max(12, max(len(n) for n in names) + 2)
@@ -182,17 +185,18 @@ def main(args):
                         print(row)
 
     if ref:
+        ref0 = ref[0]
         print()
         print('=' * (22 + w * (len(names) + 1)))
-        print(f"  SAME-HARNESS DELTA vs {ref}   (both evaluated here; no paper involved)")
+        print(f"  SAME-HARNESS DELTA vs {ref0}   (both evaluated here; no paper involved)")
         print('=' * (22 + w * (len(names) + 1)))
-        others = [n for n in names if n != ref]
+        others = [n for n in names if n != ref0]
         print(f"  {'bench':<13}{'mode':<7}" + ''.join(f"{n:>{w}}" for n in others))
         print('-' * (22 + w * (len(names) + 1)))
         rgaps = {n: [] for n in others}
         for bench, modes in RET_ORDER:
             for mode in modes:
-                base = runs[ref].get((bench, mode), (None, None))[0]
+                base = runs[ref0].get((bench, mode), (None, None))[0]
                 row = f"  {bench:<13}{mode:<7}"
                 for n in others:
                     v = runs[n].get((bench, mode), (None, None))[0]
@@ -208,7 +212,32 @@ def main(args):
             g = rgaps[n]
             row += f"{(sum(g)/len(g)):>+{w}.1f}" if g else f"{'—':>{w}}"
         print(row)
-        print(f"\n  positive = better than {ref} on the SAME evaluation code, galleries and configs.")
+        print(f"\n  positive = better than {ref0} on the SAME evaluation code, galleries and configs.")
+
+        # mean-delta summary against EVERY reference, one matrix -- the row a paper quotes.
+        # Each cell is the mean over the settings both runs have; n varies only if a log is missing.
+        if len(ref) > 1 or True:
+            wm = max(16, max(len(r) for r in ref) + 6)
+            print()
+            print('=' * (24 + wm * len(ref)))
+            print("  MEAN DELTA (T2V R@1) vs each reference")
+            print('=' * (24 + wm * len(ref)))
+            print(f"  {'run':<22}" + ''.join(f"{'vs ' + r:>{wm}}" for r in ref))
+            for n in names:
+                row = f"  {n:<22}"
+                for r in ref:
+                    if n == r:
+                        row += f"{'0.0':>{wm}}"
+                        continue
+                    ds = []
+                    for bench, modes in RET_ORDER:
+                        for mode in modes:
+                            a_ = runs[n].get((bench, mode), (None,))[0]
+                            b_ = runs[r].get((bench, mode), (None,))[0]
+                            if a_ is not None and b_ is not None:
+                                ds.append(a_ - b_)
+                    row += f"{(sum(ds)/len(ds)):>+{wm}.1f}" if ds else f"{'—':>{wm}}"
+                print(row)
     return 0
 
 
