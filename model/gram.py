@@ -99,6 +99,13 @@ class GRAM(MMGeneralModule):
         # rotating the clip's subspace toward its caption. Backprop flows THROUGH the normaliser,
         # so span collapse is actively penalised, not just unrewarded.
         self.train_vol_norm = bool(getattr(self.config, 'train_volume_normalized', False))
+        # Caption mutual-kNN as a HARD-NEGATIVE weighting in the contrastive loss (train-only).
+        # The kNN neighbours are each clip's hardest competitors by construction; the original
+        # design AVERAGED a clip with them (message passing), which erases exactly the margins
+        # R@1 grades (-14.3 first-stage, measured). Boosting their logits in the denominator
+        # instead trains the model to SEPARATE them. A loss term cannot leak at inference.
+        self.w_hardneg = float(getattr(self.config, 'w_hardneg', 0.0))
+        self.hardneg_k = int(getattr(self.config, 'hardneg_k', 16))
         self._gc_edges = 0
         self.knn_k = int(getattr(self.config, 'knn_k', 4))
         self.edge_dropout = float(getattr(self.config, 'edge_dropout', 0.3))
@@ -109,7 +116,9 @@ class GRAM(MMGeneralModule):
             from .hypergraph import GatedHGNN
             self.hgnn = GatedHGNN(contra_dim, n_layers=int(getattr(self.config, 'hgnn_layers', 2)),
                                   gate_init=float(getattr(self.config, 'gate_init', 1.0)),
-                                  per_mod_gate=bool(getattr(self.config, 'per_mod_gate', False)))
+                                  per_mod_gate=bool(getattr(self.config, 'per_mod_gate', False)),
+                                  n_prototypes=int(getattr(self.config, 'n_prototypes', 0)),
+                                  proto_temp=float(getattr(self.config, 'proto_temp', 0.1)))
         self.itm_head = Match_head(self.multimodal_dim)
         self.vision_frame_embedding = nn.Parameter(0.02 * torch.randn(1, self.config.max_vision_sample_num, self.multimodal_dim))
         self.audio_frame_embedding = nn.Parameter(0.02 * torch.randn(1, self.config.max_audio_sample_num, self.multimodal_dim))
@@ -544,7 +553,11 @@ class GRAM(MMGeneralModule):
             _hd_r = doc_incidence(B, mask, device, present=None).float()
             _hs_r = semantic_incidence(adj, B, mask, device, present=None) if H_sem is not None else None
             H_recv = _hd_r if _hs_r is None else torch.cat([_hd_r, _hs_r], dim=1)
-        z_hat, _h, _hp = self.hgnn(z32, mask, H_doc, H_sem, present=present, H_recv=H_recv)
+        proto_src = None
+        if getattr(self.hgnn, 'n_protos', 0) > 0:
+            proto_src = self._fusion_src(z, mask, present)
+        z_hat, _h, _hp = self.hgnn(z32, mask, H_doc, H_sem, present=present, H_recv=H_recv,
+                                   proto_src=proto_src)
         return [z_hat[m].to(feats_list[i].dtype) for i, m in enumerate(mask)]
 
     def _vol_score(self, vol, gal_feats, present, dim):
@@ -644,7 +657,11 @@ class GRAM(MMGeneralModule):
             _hd_r = doc_incidence(B, mask, device, present=None).float()
             _hs_r = semantic_incidence(adj, B, mask, device, present=None) if H_sem is not None else None
             H_recv = _hd_r if _hs_r is None else torch.cat([_hd_r, _hs_r], dim=1)
-        z_hat, h, h_prenorm = self.hgnn(z32, mask, H_doc, H_sem, present=pres, H_recv=H_recv)
+        proto_src = None
+        if getattr(self.hgnn, 'n_protos', 0) > 0:
+            proto_src = self._fusion_src({m: feats[m] for m in mask}, mask, pres)
+        z_hat, h, h_prenorm = self.hgnn(z32, mask, H_doc, H_sem, present=pres, H_recv=H_recv,
+                                        proto_src=proto_src)
         if go_global:
             # GatherLayer concatenates rank-ordered, so this rank owns rows [rank*B_local, ...).
             # Slicing back keeps every caller downstream (losses, the later gathers) unchanged.
@@ -716,7 +733,15 @@ class GRAM(MMGeneralModule):
                 z_hat, hg_h, hg_h_prenorm = self._hg_refine(_f, t_frozen=feat_t, use_semantic=True,
                                                             has_audio=_ha)
                 self._gc=getattr(self,"_gc",0)+1
-                if self._gc%50==1 and dist.get_rank()==0: print(f"[GATE] step~{self._gc}: {self.hgnn.gates.detach().float().tolist()}",flush=True)
+                if self._gc%50==1 and dist.get_rank()==0:
+                    print(f"[GATE] step~{self._gc}: {self.hgnn.gates.detach().float().tolist()}",flush=True)
+                    if getattr(self.hgnn, 'n_protos', 0) > 0 and self.hgnn.last_proto_stats:
+                        _pe, _pt = self.hgnn.last_proto_stats
+                        # usage_entropy near 1 = prototypes used evenly; near 0 = codebook collapse.
+                        # top1_share near 1 = hard assignment; near 1/K = uniform (no topic structure).
+                        print(f"[PROTO] K={self.hgnn.n_protos} usage_entropy={_pe:.3f} "
+                              f"top1_share={_pt:.3f} "
+                              f"gates={self.hgnn.proto_gates.detach().float().tolist()}", flush=True)
                 feat_v, feat_a = z_hat['V'], z_hat['A']        # feat_t UNCHANGED (raw)
                 if 'S' in z_hat: feat_s = z_hat['S']
                 if 'D' in z_hat: feat_d = z_hat['D']
@@ -778,9 +803,26 @@ class GRAM(MMGeneralModule):
             bs = feat_t.size(0)
             targets = torch.linspace(rank * bs, rank * bs + bs - 1, bs, dtype=int).to(volume.device)
 
+            _vb, _vbT = volume, volumeT
+            if self.training and self.w_hardneg > 0:
+                # Boost the logits of caption-kNN neighbours in the denominator: score = -volume,
+                # so subtracting beta*adj from a neighbour's volume makes it a HARDER negative.
+                # adj is built on the gathered captions, identically on every rank (deterministic:
+                # no dropout), sliced to this rank's rows. Diagonal is zero by construction, so
+                # the positive is never boosted. Applied to boosted COPIES: the unboosted volume
+                # still drives the ITM negative sampling below, keeping the two mechanisms
+                # independent.
+                from .hypergraph import mutual_knn_adj
+                with torch.no_grad():
+                    _adj = mutual_knn_adj(feat_t_all.detach().float(), k=self.hardneg_k,
+                                          edge_dropout=0.0, training=False)
+                if _adj is not None:
+                    _loc = _adj[rank * bs:(rank + 1) * bs]
+                    _vb = volume - self.w_hardneg * _loc
+                    _vbT = volumeT - self.w_hardneg * _loc
             loss = (
-                    F.cross_entropy(-volume, targets, label_smoothing=0.1) #d2a
-                    + F.cross_entropy(-volumeT, targets, label_smoothing=0.1) #a2d
+                    F.cross_entropy(-_vb, targets, label_smoothing=0.1) #d2a
+                    + F.cross_entropy(-_vbT, targets, label_smoothing=0.1) #a2d
             ) / 2
 
             loss_area.append(loss)

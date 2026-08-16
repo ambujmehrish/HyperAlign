@@ -117,7 +117,8 @@ class GatedHGNN(nn.Module):
 
     MODS = 'VASD'                     # fixed letter order for per-modality gates
 
-    def __init__(self, k=512, n_layers=2, gate_init=1.0, per_mod_gate=False):
+    def __init__(self, k=512, n_layers=2, gate_init=1.0, per_mod_gate=False,
+                 n_prototypes=0, proto_temp=0.1):
         super().__init__()
         assert n_layers <= 2, 'more layers = over-smoothing'
         self.n_layers = n_layers
@@ -143,6 +144,25 @@ class GatedHGNN(nn.Module):
         _shape = (n_layers, len(self.MODS)) if self.per_mod_gate else (n_layers,)
         self.gates = nn.Parameter(torch.full(_shape, float(gate_init)))
         self.edge_head = nn.Linear(k, k, bias=False)
+        # ---- topic-prototype hyperedges (cross-document, learned, inductive) -------------
+        # K global hyperedges whose EDGE EMBEDDINGS are parameters: a topic codebook. During
+        # training every clip of a topic writes gradient into the same prototype, so topic-mates
+        # inform each other THROUGH the codebook; at inference a clip reads what the population
+        # taught it. That realises "clips about the same topic inform each other" while avoiding
+        # every measured failure of neighbour message passing: no captions in the forward (no
+        # leak), prototypes are weights (no transduction, batch-independent), and the message is
+        # a learned topic summary, not an average over the clip's own hardest negatives (which
+        # cost -14.3 first-stage). All of a clip's vertices share ONE soft edge assignment --
+        # that joint membership is what keeps this a hyperedge rather than per-vertex attention.
+        # Gates are tanh, so training can choose to SUBTRACT the generic topic component
+        # (sharpening) instead of adding it; the learned sign is itself a finding.
+        self.n_protos = int(n_prototypes)
+        self.proto_temp = float(proto_temp)
+        self.last_proto_stats = None
+        if self.n_protos > 0:
+            self.protos = nn.Parameter(F.normalize(torch.randn(self.n_protos, k), dim=-1))
+            self.W_P = nn.Linear(k, k, bias=False)
+            self.proto_gates = nn.Parameter(torch.full((len(self.MODS),), float(gate_init)))
 
     @staticmethod
     def _norm(H):
@@ -150,7 +170,7 @@ class GatedHGNN(nn.Module):
         dv = H.sum(dim=1).clamp(min=1.0)                       # vertex degree
         return H / d.unsqueeze(0), H / dv.unsqueeze(1)
 
-    def forward(self, z, mask, H_doc, H_sem=None, present=None, H_recv=None):
+    def forward(self, z, mask, H_doc, H_sem=None, present=None, H_recv=None, proto_src=None):
         """z: dict non-text modality -> (B, K) L2-normed (no 'T'). present (B,k1) 0/1 marks which
         modalities a doc actually has; a missing one is masked out of the doc edge (H_doc) and of the
         fusion mean, so it neither passes messages nor dilutes h. present=None -> complete behaviour.
@@ -182,6 +202,21 @@ class GatedHGNN(nn.Module):
                 F_V = F_V + (torch.tanh(_g).repeat(B)).unsqueeze(1) * F_Vn
             else:
                 F_V = F_V + torch.tanh(self.gates[l]) * F_Vn
+
+        if self.n_protos > 0 and proto_src is not None:
+            # proto_src: (B, d) query-free fusion descriptor, unit-norm, detached (assignment is
+            # topology, like the kNN wiring; prototypes and W_P still receive gradient through the
+            # message). One assignment per CLIP, shared by all its vertices.
+            P = F.normalize(self.protos, dim=-1)
+            a = torch.softmax(proto_src.float() @ P.T / self.proto_temp, dim=-1)   # (B, K)
+            msg = self.W_P(a @ P)                                                   # (B, d)
+            g = self.proto_gates[[self.MODS.index(m) for m in order]]               # (k1,)
+            upd = torch.tanh(g).view(1, k1, 1) * msg.unsqueeze(1)                   # (B, k1, d)
+            F_V = F_V + upd.reshape(B * k1, -1)
+            with torch.no_grad():
+                usage = a.mean(dim=0)
+                ent = float(-(usage * (usage + 1e-9).log()).sum() / torch.log(torch.tensor(float(self.n_protos))))
+                self.last_proto_stats = (ent, float(a.max(dim=-1).values.mean()))
 
         V = F_V.reshape(B, k1, -1)
         z_hat = {m: F.normalize(V[:, i], dim=-1) for i, m in enumerate(order)}
