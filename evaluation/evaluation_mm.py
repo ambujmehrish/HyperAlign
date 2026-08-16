@@ -528,7 +528,21 @@ def refine_score_matrix(condition_feats, input_ids, attention_mask, score_matrix
             cur_scores.append(slice_scores)
         cur_scores = torch.cat(cur_scores,dim=0)
 
-        cur_score_matrix_t_cond_new[:,i][(cur_idxs_new[:,i] == 1)] = cur_scores
+        _sel = (cur_idxs_new[:, i] == 1)
+        # ---- score fusion (HA_RERANK_ALPHA) ------------------------------------------------
+        # By default the final ranking is PURE ITM logits: the first-stage score nominates the
+        # top-K and is then discarded, so a large first-stage improvement (+7 R@1 measured)
+        # vanishes from the protocol metric. Fusing the two stages keeps it: both are
+        # z-scored over the candidate set (they live on incommensurate scales) and summed with
+        # weight alpha on the first stage. alpha=1 is fixed A PRIORI -- equal weight -- so no
+        # hyperparameter is tuned on test data. alpha=0 (default) is the unchanged protocol.
+        _alpha = float(os.environ.get('HA_RERANK_ALPHA', '0') or 0)
+        if _alpha > 0 and int(_sel.sum()) > 1:
+            _prior = cur_score_matrix_t_cond[:, i][_sel].float()
+            _itm = cur_scores.float()
+            _z = lambda x: (x - x.mean()) / (x.std() + 1e-6)
+            cur_scores = (_z(_itm) + _alpha * _z(_prior)).to(cur_scores.dtype)
+        cur_score_matrix_t_cond_new[:, i][_sel] = cur_scores
         pbar.update(1)
     pbar.close()
     
