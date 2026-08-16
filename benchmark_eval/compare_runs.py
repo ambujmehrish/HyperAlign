@@ -33,6 +33,49 @@ sys.path.insert(0, HERE)
 from eval_summary import merge_metrics, mode_keys, pick, PAPER, RET_ORDER  # noqa: E402
 
 
+def volume_stage_metrics(log):
+    """Sectional parse of one eval log -> (t2v_r1, v2t_r1, t2v_recall, v2t_recall) for the RAW
+    volume stage.
+
+    A flat key-merge cannot recover the V2T direction: upstream computes the backward pass with
+    direction='forward', so its dict keys come out as forward_* (the replace('backward', ...) that
+    was meant to rename them is a no-op), and forward_* ALSO appears in the cosine_* sections.
+    The only unambiguous signal is WHICH SECTION a dict was printed under, so track the last seen
+    section banner and read the next dict in its context.
+    """
+    import ast as _ast, re as _re
+    t2v = v2t = rt = rv = None
+    sec = None
+    if not os.path.exists(log):
+        return t2v, v2t, rt, rv
+    for line in open(log, errors='ignore'):
+        if 'ret_area_forward' in line:
+            sec = 'T2V'
+        elif 'ret_area_back' in line:               # upstream spells it 'ret_area_backard'
+            sec = 'V2T'
+        elif 'ret_itm_area' in line or 'cosine_' in line:
+            sec = None
+        m = _re.search(r"\{.*\}", line)
+        if not (m and sec):
+            continue
+        try:
+            d = _ast.literal_eval(m.group(0))
+        except Exception:
+            continue
+        if not isinstance(d, dict):
+            continue
+        r1 = d.get('volume_T2D_r1', d.get('volume_D2T_r1', d.get('forward_r1')))
+        rec = d.get('volume_T2D_recall', d.get('volume_D2T_recall', d.get('forward_recall')))
+        if r1 is None:
+            continue
+        if sec == 'T2V' and t2v is None:
+            t2v, rt = r1, rec
+        elif sec == 'V2T' and v2t is None:
+            v2t, rv = r1, rec
+        sec = None                                   # one dict per banner
+    return t2v, v2t, rt, rv
+
+
 def collect(res_dir, stage='itm'):
     """-> {(bench, mode): (t2v_r1, v2t_r1, t2v_recall_str, v2t_recall_str)}"""
     out = {}
@@ -43,13 +86,7 @@ def collect(res_dir, stage='itm'):
             if not merged:
                 continue
             if stage == 'volume':
-                # ret_area_forward / ret_area_backard sections: raw volume, no rerank.
-                # The D2T keys are defensive -- upstream's key renaming for the backward
-                # direction has a quirk, so fall back to whatever variant is present.
-                t2v = merged.get('volume_T2D_r1')
-                v2t = merged.get('volume_D2T_r1', merged.get('backward_r1'))
-                rt = merged.get('volume_T2D_recall')
-                rv = merged.get('volume_D2T_recall', merged.get('backward_recall'))
+                t2v, v2t, rt, rv = volume_stage_metrics(log)
                 if t2v is None:
                     continue
                 out[(bench, mode)] = (t2v, v2t, rt, rv)
