@@ -104,6 +104,20 @@ class GRAM(MMGeneralModule):
         # design AVERAGED a clip with them (message passing), which erases exactly the margins
         # R@1 grades (-14.3 first-stage, measured). Boosting their logits in the denominator
         # instead trains the model to SEPARATE them. A loss term cannot leak at inference.
+        # Fuse the RERANKER'S conditioning path. Every prior variant refined only the 512-d
+        # contrastive embeddings, but the metric-deciding ITM stage ranks with condition_feats --
+        # a separate 768-d token path the graph never touched, which is the mechanical reason
+        # first-stage gains (+7 R@1) never reached the protocol metric. This applies the same
+        # per-clip hyperedge operator there: pool each modality's tokens, form one edge summary,
+        # broadcast a gated message back into every token of each modality. Inserted inside
+        # batch_get, so training, validation and the eval rerank all see the identical function.
+        self.fuse_condition = bool(getattr(self.config, 'fuse_condition', False))
+        if self.fuse_condition:
+            _md = self.multimodal_dim
+            self.cond_fuse_WV = nn.Linear(_md, _md, bias=False)
+            self.cond_fuse_WE = nn.Linear(_md, _md, bias=False)
+            self.cond_fuse_gates = nn.Parameter(
+                torch.full((4,), float(getattr(self.config, 'gate_init', 0.1))))   # V,A,S,D
         self.w_hardneg = float(getattr(self.config, 'w_hardneg', 0.0))
         self.hardneg_k = int(getattr(self.config, 'hardneg_k', 16))
         self._gc_edges = 0
@@ -297,12 +311,16 @@ class GRAM(MMGeneralModule):
         elif key == 'condition_feats_va':
             condition_feats_v = self.batch_get(batch, 'condition_feats_v')
             condition_feats_a = self.batch_get(batch, 'condition_feats_a')
+            condition_feats_v, condition_feats_a = self._fuse_cond(
+                [('V', condition_feats_v), ('A', condition_feats_a)])
             condition_feats_va = torch.cat((condition_feats_v, condition_feats_a),dim=1)
             batch[key] = condition_feats_va
 
         elif key == 'condition_feats_vs':
             condition_feats_v = self.batch_get(batch, 'condition_feats_v')
             condition_feats_s = self.batch_get(batch, 'condition_feats_s')
+            condition_feats_v, condition_feats_s = self._fuse_cond(
+                [('V', condition_feats_v), ('S', condition_feats_s)])
             condition_feats_vs = torch.cat((condition_feats_v, condition_feats_s),dim=1)
             batch[key] = condition_feats_vs
 
@@ -310,6 +328,8 @@ class GRAM(MMGeneralModule):
             condition_feats_v = self.batch_get(batch, 'condition_feats_v')
             condition_feats_a = self.batch_get(batch, 'condition_feats_a')
             condition_feats_s = self.batch_get(batch, 'condition_feats_s')
+            condition_feats_v, condition_feats_a, condition_feats_s = self._fuse_cond(
+                [('V', condition_feats_v), ('A', condition_feats_a), ('S', condition_feats_s)])
             condition_feats_vas = torch.cat((condition_feats_v, condition_feats_a, condition_feats_s),dim=1)
             batch[key] = condition_feats_vas
             
@@ -318,6 +338,8 @@ class GRAM(MMGeneralModule):
             condition_feats_a = self.batch_get(batch, 'condition_feats_a')
             condition_feats_s = self.batch_get(batch, 'condition_feats_s')
             condition_feats_d = self.batch_get(batch, 'condition_feats_d')
+            condition_feats_v, condition_feats_a, condition_feats_s, condition_feats_d = self._fuse_cond(
+                [('V', condition_feats_v), ('A', condition_feats_a), ('S', condition_feats_s), ('D', condition_feats_d)])
             condition_feats_vas = torch.cat((condition_feats_v, condition_feats_a, condition_feats_s, condition_feats_d),dim=1)
             batch[key] = condition_feats_vas
 
@@ -497,6 +519,23 @@ class GRAM(MMGeneralModule):
 
         return slice_scores
 
+
+    def _fuse_cond(self, parts):
+        """Per-clip hyperedge fusion on the reranker's conditioning tokens.
+
+        parts: list of (modality_letter, tokens (B, L_m, 768)). One doc hyperedge per clip:
+        edge summary = GELU(W_V(mean of the modalities' pooled tokens)); each modality's tokens
+        receive a tanh-gated broadcast of W_E(edge). Gates start at ~0.1 so step 0 is within a
+        whisker of the unfused model; per-modality gates let e.g. audio take clip context while
+        video declines it. Identity when the flag is off or only one modality is present.
+        """
+        if not getattr(self, 'fuse_condition', False) or len(parts) < 2:
+            return [t for _, t in parts]
+        pooled = torch.stack([t.mean(dim=1) for _, t in parts], dim=1)     # (B, k, 768)
+        e = F.gelu(self.cond_fuse_WV(pooled.mean(dim=1)))                  # (B, 768)
+        msg = self.cond_fuse_WE(e).unsqueeze(1)                            # (B, 1, 768)
+        MODS = 'VASD'
+        return [t + torch.tanh(self.cond_fuse_gates[MODS.index(m)]) * msg for m, t in parts]
 
     @staticmethod
     def _fusion_src(z, mask, present=None):
@@ -735,6 +774,8 @@ class GRAM(MMGeneralModule):
                 self._gc=getattr(self,"_gc",0)+1
                 if self._gc%50==1 and dist.get_rank()==0:
                     print(f"[GATE] step~{self._gc}: {self.hgnn.gates.detach().float().tolist()}",flush=True)
+                    if getattr(self, 'fuse_condition', False):
+                        print(f"[CONDGATE] step~{self._gc}: {self.cond_fuse_gates.detach().float().tolist()}",flush=True)
                     if getattr(self.hgnn, 'n_protos', 0) > 0 and self.hgnn.last_proto_stats:
                         _pe, _pt = self.hgnn.last_proto_stats
                         # usage_entropy near 1 = prototypes used evenly; near 0 = codebook collapse.

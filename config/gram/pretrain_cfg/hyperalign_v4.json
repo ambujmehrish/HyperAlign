@@ -1,0 +1,79 @@
+{
+ "run_cfg": {
+  "default": "./config/gram/default_run_cfg.json",
+  "learning_rate": 0.0001,
+  "first_eval": false,
+  "save_steps": 150,
+  "checkpoint": "/leonardo_work/AIFAC_S07_041/HyperAlign/pretrained_weights/VAST_foundation/pretrain_vast/ckpt/model_step_204994.pt",
+  "save_best": false,
+  "valid_freq": 20,
+  "new_params_name": [
+   "hgnn"
+  ],
+  "new_lr": 0.0005,
+  "keep_last_n_ckpt": 5
+ },
+ "model_cfg": {
+  "default": "./config/gram/default_model_cfg.json",
+  "vision_encoder_type": "evaclip01_giant",
+  "stage": "B",
+  "w_doc": 0.0,
+  "w_reg": 0.0,
+  "semantic_edges": false,
+  "knn_k": 32,
+  "sem_sim_std": 0.5,
+  "edge_dropout": 0.3,
+  "hgnn_layers": 2,
+  "global_graph": false,
+  "masked_volume": true,
+  "w_raw": 0.0,
+  "gate_init": 0.1,
+  "w_distill": 0.0,
+  "sem_edge_src": "caption",
+  "infer_graph": true,
+  "train_volume_normalized": true,
+  "volume_normalized": true,
+  "per_mod_gate": true,
+  "impute_missing": false,
+  "fuse_condition": true,
+  "n_prototypes": 0,
+  "w_hardneg": 0.0
+ },
+ "data_cfg": {
+  "train": [
+   {
+    "type": "annoindexed",
+    "training": true,
+    "name": "finetune_area",
+    "txt": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vast27m_150k/annotations150k.json",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vast27m_150k/clips",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/vast27m_150k/audios_wav",
+    "datatype": "video_rawvideo",
+    "vision_format": "video_rawvideo",
+    "vision_sample_num": 2,
+    "audio_sample_num": 1,
+    "task": "ret%tv%ta",
+    "epoch": 1,
+    "n_workers": 8,
+    "batch_size": 256
+   }
+  ],
+  "val": [
+   {
+    "type": "annoindexed",
+    "training": false,
+    "name": "msrvtt_ret",
+    "txt": "datasets/annotations/msrvtt/descs_ret_test.json",
+    "vision_transforms": "crop_flip",
+    "vision_format": "video_rawvideo",
+    "vision": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/MSRVTT_full/MSRVTT/videos/all",
+    "audio": "/leonardo_scratch/large/userexternal/anag0000/Multimodal_HyperGraph_Dataset/MSRVTT_full/audios",
+    "vision_sample_num": 8,
+    "audio_sample_num": 1,
+    "task": "ret%tvas",
+    "n_workers": 8,
+    "batch_size": 64
+   }
+  ]
+ }
+}
