@@ -128,7 +128,7 @@ def main(args):
 
     names = list(runs)
     w = max(12, max(len(n) for n in names) + 2)
-    _title = ("ZERO-SHOT T2V R@1  ·  all runs vs GRAM (paper)" if stage == 'itm' else
+    _title = ("ZERO-SHOT T2V R@1 (ITM protocol)  ·  PAPER column is reference-only, deltas vs --ref" if stage == 'itm' else
               "FIRST-STAGE (raw Gramian volume, pre-ITM) T2V R@1  ·  embedding quality")
     print('=' * (22 + w * (len(names) + 1)))
     print(f"  {_title}")
@@ -151,17 +151,10 @@ def main(args):
                 row += f"{paper:>{w}.1f}" if paper is not None else f"{'—':>{w}}"
             print(row)
     print('-' * (22 + w * (len(names) + 1)))
-    if stage == 'itm':
-        row = f"  {'mean gap vs paper':<20}"
-        for n in names:
-            g = gaps[n]
-            row += f"{(sum(g)/len(g)):>{w}.1f}" if g else f"{'—':>{w}}"
-        print(row + f"{'0.0':>{w}}")
-        print()
-        for n in names:
-            if gaps[n]:
-                print(f"  {n}: {len(gaps[n])} settings, mean {sum(gaps[n])/len(gaps[n]):+.1f}, "
-                      f"worst {min(gaps[n]):+.1f}, best {max(gaps[n]):+.1f}")
+    # No gap-vs-paper statistics: the published numbers are display-only context. GRAM's own
+    # released checkpoint scores below its published table in this harness (data provenance is
+    # not shared), so the only defensible baseline is a checkpoint evaluated HERE -- pass it via
+    # --ref and read the delta blocks below.
 
     if stage == 'volume':
         wr = max(18, max(len(n) for n in names) + 2)
