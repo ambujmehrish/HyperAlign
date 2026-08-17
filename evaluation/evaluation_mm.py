@@ -541,7 +541,11 @@ def refine_score_matrix(condition_feats, input_ids, attention_mask, score_matrix
             _prior = cur_score_matrix_t_cond[:, i][_sel].float()
             _itm = cur_scores.float()
             _z = lambda x: (x - x.mean()) / (x.std() + 1e-6)
-            cur_scores = (_z(_itm) + _alpha * _z(_prior)).to(cur_scores.dtype)
+            # +10 keeps every reranked candidate ABOVE the zero background of non-candidates.
+            # Without it, z-scored candidates are ~N(0,1), so half of them fall below 0 and rank
+            # BEHIND clips that were never reranked at all -- measured as a 7-15 R@1 collapse for
+            # every model while the within-candidate ordering (the part fusion changes) was fine.
+            cur_scores = (_z(_itm) + _alpha * _z(_prior) + 10.0).to(cur_scores.dtype)
         cur_score_matrix_t_cond_new[:, i][_sel] = cur_scores
         pbar.update(1)
     pbar.close()
